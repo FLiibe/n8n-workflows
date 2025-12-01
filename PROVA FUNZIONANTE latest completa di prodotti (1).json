@@ -1,0 +1,1383 @@
+{
+  "name": "PROVA FUNZIONANTE latest completa di prodotti",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "html",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -672,
+        1920
+      ],
+      "id": "47055124-4f2e-4316-b791-2b2983425291",
+      "name": "Converti in base"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a7b22af1-f082-493d-bc10-6e1cea32e4b5",
+              "name": "airtableTokenValue",
+              "value": "={{$env['AIRTABLE_API_TOKEN']}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2016,
+        1920
+      ],
+      "id": "7b5958f6-07b9-4d0f-b68e-8f4199deb1ed",
+      "name": "Prepara Token"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a7b22af1-f082-493d-bc10-6e1cea32e4b5",
+              "name": "orsApiKeyValue",
+              "value": "={{$env['ORS_API_KEY']}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3584,
+        1824
+      ],
+      "id": "be8df626-927a-4c87-bcd2-41dad3bcf68a",
+      "name": "Prepara Token Distanza"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "authentication": "airtableTokenApi",
+        "baseId": {
+          "__rl": true,
+          "value": "appE8Y5xdH5P8fbD6",
+          "mode": "id"
+        },
+        "tableId": {
+          "__rl": true,
+          "value": "tblm8KFp2Mvf3nVU1",
+          "mode": "id"
+        },
+        "triggerField": "Data_richiesta",
+        "additionalFields": {
+          "viewId": "viwUYryeVVqS4VNEN"
+        }
+      },
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3808,
+        1824
+      ],
+      "id": "bb47f68b-f9f7-4d66-9269-2505bd1ff657",
+      "name": "Airtable Trigger",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "LQVaugJUfvpQjHKn",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- IMPOSTAZIONE INIZIALE ---\nconst item = $input.first().json;\nconst formData = item.fields; \nconst errors = [];\n\n// ====================================================================\n// --- FUNZIONI HELPER ---\n// ====================================================================\n\n// Funzione per convertire una stringa in \"Proper Case\" (es. \"mario rossi\" -> \"Mario Rossi\")\nconst toProperCase = (str) => {\n  if (!str || typeof str !== 'string') return '';\n  return str.replace(/\\w\\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());\n};\n\n// Funzione per mettere in maiuscolo solo la prima lettera della frase\nfunction toSentenceCase(str) {\n    if (!str || typeof str !== 'string') return '';\n    const lowerCase = str.trim().toLowerCase();\n    return lowerCase.charAt(0).toUpperCase() + lowerCase.slice(1);\n}\n\n// ====================================================================\n// --- BLOCCO DI VALIDAZIONE ---\n// ====================================================================\n\n// 1. Controllo Distanza\nconst distanzaStr = String(formData[\"Distanza_KM\"] || '').replace(',', '.').trim();\nconst distanza = parseFloat(distanzaStr);\nif (distanzaStr === '' || isNaN(distanza) || distanza < 0) {\n  errors.push(\"Distanza non valida. Deve essere un numero positivo.\");\n}\n\n// 2. Controllo Email\nconst email = formData['Responsabile_Email'] ? formData['Responsabile_Email'].trim() : '';\nconst emailRegex = /^[^@\\s]+@[^@\\s\\.]+\\.[^@\\s\\.]{2,}$/;\nif (email && !emailRegex.test(email)) { // Valida solo se l'email è presente\n  errors.push(\"L'indirizzo email del responsabile non è valido.\");\n}\n\n// 3. Controllo Indirizzo Lavori\nconst indirizzoLavori = formData['Indirizzo_Lavori'] || '';\nconst contieneUnNumero = /\\d/.test(indirizzoLavori);\nif (indirizzoLavori && !contieneUnNumero) { // Controlla solo se il campo è stato compilato\n  errors.push(\"L'indirizzo del cantiere sembra incompleto (manca il numero civico).\");\n}\n\n// ====================================================================\n// --- GESTIONE DELL'OUTPUT DI VALIDAZIONE ---\n// ====================================================================\n\nif (errors.length > 0) {\n  // Se ci sono errori, ferma l'intero workflow e mostra un messaggio chiaro.\n  throw new Error(`Dati non validi nel form: ${errors.join('; ')}`);\n}\n\n// ====================================================================\n// --- BLOCCO DI PULIZIA E NORMALIZZAZIONE ---\n// ====================================================================\n\n// Testo generale (Proper Case e Sentence Case)\nformData['Indirizzo_fatturazione'] = toProperCase(formData['Indirizzo_fatturazione']);\nformData['Localita'] = toProperCase(formData['Localita']);\nformData['Descrizione_Lavori'] = toSentenceCase(formData['Descrizione_Lavori']);\nformData['Responsabile_Nome_Cognome'] = toProperCase(formData['Responsabile_Nome_Cognome']);\nformData[\"Banca_Appoggio\"] = toSentenceCase(formData[\"Banca_Appoggio\"]);\nformData['Indirizzo_Lavori'] = toProperCase(formData['Indirizzo_Lavori']);\nformData['Località_Lavori'] = toProperCase(formData['Località_Lavori']);\n\n// Codici e Sigle (MAIUSCOLO)\nformData['Ragione_Sociale'] = String(formData['Ragione_Sociale'] || '').trim().toUpperCase(); \nformData['Provincia'] = String(formData['Provincia'] || '').trim().toUpperCase();\nformData['Partita_IVA'] = String(formData['Partita_IVA'] || '').trim().toUpperCase();\n\n// Email (minuscolo)\nformData['Responsabile_Email'] = String(formData['Responsabile_Email'] || '').trim().toLowerCase();\n\n// Numeri (assicuriamoci che siano di tipo numerico)\nformData[\"Distanza_KM\"] = distanza; // Usiamo il valore già validato e convertito\n\n// Logica per gestire le quantità in modo dinamico\nif (formData.Prodotti_Richiesti && Array.isArray(formData.Prodotti_Richiesti)) {\n    formData.Prodotti_Richiesti.forEach(prodottoNome => {\n        const quantitaFieldName = `Quantità ${prodottoNome} in mc`;\n        if (formData[quantitaFieldName]) {\n            formData[quantitaFieldName] = parseFloat(String(formData[quantitaFieldName]).replace(',', '.'));\n        }\n    });\n}\n\n// ====================================================================\n// --- RESTITUZIONE DATI PULITI ---\n// ====================================================================\n\nitem.fields = formData;\nreturn [item];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3360,
+        1824
+      ],
+      "id": "8b50995f-49fa-4f99-b92d-9b494e4fca46",
+      "name": "Pulisci dati",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- CONFIGURAZIONE ---\nconst NOME_NODO_SET = \"Prepara Token Distanza\"; \n\n// Prendiamo i dati in ingresso\nconst item = $input.first();\nconst formData = item.json.fields;\n\ntry {\n  const orsApiKey = $items(NOME_NODO_SET)[0].json.orsApiKeyValue;\n\n  if (!orsApiKey) {\n    throw new Error(\"API Key di OpenRouteService non trovata. Controlla il nodo 'Set' precedente.\");\n  }\n\n  // --- PASSAGGIO 1: TROVARE LE COORDINATE (GEOCODING) ---\n  const indirizzoImpianto = `c.da Revota, snc, 86014 Guardiaregia CB, Italia`;\n  \n  // Chiamata strutturata per l'impianto (più sicura)\n  const geocodeImpiantoResponse = await this.helpers.httpRequest({\n    url: `https://api.openrouteservice.org/geocode/search/structured?api_key=${orsApiKey}&address=${encodeURIComponent(\"c.da Revota, snc\")}&postalcode=86014&locality=${encodeURIComponent(\"Guardiaregia\")}&country=ITA`,\n    headers: { 'Accept': 'application/json, application/geo+json, application/json; charset=utf-8' },\n    json: true,\n  });\n  const coordsImpianto = geocodeImpiantoResponse.features[0].geometry.coordinates;\n\n  // Chiamata API \"Strutturata\" per il cantiere per eliminare ambiguità\n  const geocodeCantiereResponse = await this.helpers.httpRequest({\n    url: `https://api.openrouteservice.org/geocode/search/structured?api_key=${orsApiKey}&address=${encodeURIComponent(formData['Indirizzo_Lavori'])}&postalcode=${formData['CAP_Lavori']}&locality=${encodeURIComponent(formData['Località_Lavori'])}&country=ITA`,\n    headers: { 'Accept': 'application/json, application/geo+json, application/json; charset=utf-8' },\n    json: true,\n  });\n  \n  if (!geocodeCantiereResponse.features || geocodeCantiereResponse.features.length === 0) {\n    throw new Error(`Indirizzo del cantiere non trovato dal servizio di mappe: \"${formData['Indirizzo_Lavori']}, ${formData['Località_Lavori']}\"`);\n  }\n  const coordsCantiere = geocodeCantiereResponse.features[0].geometry.coordinates;\n\n  // --- PASSAGGIO 2: CALCOLARE LA DISTANZA ---\n  const startPoint = `${coordsImpianto[0]},${coordsImpianto[1]}`;\n  const endPoint = `${coordsCantiere[0]},${coordsCantiere[1]}`;\n\n  const directionsResponse = await this.helpers.httpRequest({\n    url: `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${orsApiKey}&start=${startPoint}&end=${endPoint}`,\n    headers: { 'Accept': 'application/json, application/geo+json, application/json; charset=utf-8' },\n    json: true,\n  });\n\n  // --- PASSAGGIO 3: ESTRARRE IL RISULTATO, ARROTONDARE E RESTITUIRLO ---\n  const distanceInMeters = directionsResponse.features[0].properties.summary.distance;\n  // Calcola la distanza precisa in km\n  const distanceInKm = distanceInMeters / 1000;\n  // Arrotonda all'intero più vicino\n  const distanceInKmArrotondata = Math.round(distanceInKm);\n\n  formData[\"Distanza_KM\"] = distanceInKmArrotondata;\n  // ====================================================================\n  // --- FINE MODIFICA ---\n\n  return [item];\n\n} catch (error) {\n  if (error.response && error.response.data) {\n     throw new Error(`Errore API OpenRouteService: ${JSON.stringify(error.response.data)}`);\n  }\n  throw new Error(`Errore durante il calcolo della distanza: ${error.message}`);\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2912,
+        1920
+      ],
+      "id": "9cd69e11-21f2-41ab-a19a-bf48806d3576",
+      "name": "form pulito"
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "company",
+        "name": "={{ $json.fields.Ragione_Sociale }}",
+        "additionalFields": {
+          "companyOwner": "="
+        }
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        -2688,
+        1920
+      ],
+      "id": "134c95ba-0abc-4f31-896f-9527ad24ee5b",
+      "name": "Crea impresa in HubSpot",
+      "executeOnce": true,
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7IamKHI0dSsXK7m2",
+          "name": "Hubspot SMI "
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $('form pulito').item.json.fields.Responsabile_Email }}",
+        "additionalFields": {
+          "associatedCompanyId": "={{ $json.companyId }}",
+          "firstName": "={{ $('form pulito').item.json.fields.Responsabile_Nome_Cognome.split(' ')[0] }}",
+          "lastName": "={{ $('form pulito').item.json.fields.Responsabile_Nome_Cognome.split(' ')[1] }}",
+          "phoneNumber": "={{ $('form pulito').item.json.fields.Responsabile_Cell }}"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        -2464,
+        1920
+      ],
+      "id": "5bf7254d-ca32-4d12-962a-f8c2277b031a",
+      "name": "Associa Cliente in HubSpot",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7IamKHI0dSsXK7m2",
+          "name": "Hubspot SMI "
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "deal",
+        "stage": "appointmentscheduled",
+        "additionalFields": {
+          "associatedVids": "={{ $json.vid }}",
+          "dealName": "=Preventivo per {{ $('form pulito').item.json.fields.Ragione_Sociale }}"
+        }
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        -2240,
+        1920
+      ],
+      "id": "cab8f08f-6fcf-48e3-b0e6-4c9078fcbab9",
+      "name": "HubSpot Crea Deal",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "7IamKHI0dSsXK7m2",
+          "name": "Hubspot SMI "
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ====================================================================\n//  PARTE 1: LOGICA JAVASCRIPT (CORRETTA E SEMPLIFICATA)\n// ====================================================================\n\n// Leggiamo i dati direttamente dal nodo di calcolo\nconst dati = $items(\"Calcola Preventivo Finale\")[0].json;\n\nconst cliente = dati.cliente;\nconst lavoro = dati.lavoro;\nconst preventivo = dati.preventivo;\n\nlet righeProdotti = '';\nfor (const prodotto of preventivo.dettaglioProdotti) {\n  // Formattiamo i numeri per essere sicuri che abbiano due decimali\n  const prezzoUnitarioFormatted = parseFloat(prodotto.prezzoUnitarioMC).toFixed(2);\n  const totaleRigaFormatted = parseFloat(prodotto.totale).toFixed(2);\n\n  // --- MODIFICA CHIAVE QUI ---\n  // Ora usiamo direttamente 'prodotto.peso', che è il valore corretto\n  // calcolato e passato dal nodo precedente. Non serve più fare una nuova ricerca.\n  righeProdotti += `\n    <tr>\n      <td>${prodotto.descrizione || ''}</td>\n      <td class=\"text-center\">${prodotto.peso || 'N/D'}</td>\n      <td class=\"text-right\">${prodotto.quantita || ''}</td>\n      <td class=\"text-right\">€ ${prezzoUnitarioFormatted}</td>\n      <td class=\"text-right\">€ ${totaleRigaFormatted}</td>\n    </tr>\n  `;\n}\n\n// ====================================================================\n//  PARTE 2: TEMPLATE HTML COMPLETO\n// ====================================================================\n\nconst html = `\n<!DOCTYPE html>\n<html lang=\"it\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Preventivo SMI Spa</title>\n    <style>\n        @page { size: A4; margin: 15mm; }\n        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; background-color: #fff; }\n        .page { width: 100%; min-height: 267mm; box-sizing: border-box; overflow: hidden; position: relative; }\n        .page-break { page-break-before: always; }\n        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; gap: 20px; }\n        .logo { width: 150px; }\n        .company-info { flex-basis: 33%; }\n        .title-container { flex-basis: 33%; text-align: center; }\n        .cert-info { flex-basis: 33%; text-align: right; }\n        .text-right { text-align: right; }\n        .text-center { text-align: center; }\n        .client-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin: 20px 0; padding: 15px; border: 1px solid #ddd; }\n        .products-table { width: 100%; border-collapse: collapse; margin-top: 20px; }\n        .products-table th, .products-table td { border: 1px solid #ddd; padding: 8px; }\n        .products-table th { background-color: #f2f2f2; font-weight: bold; }\n        .terms { margin-top: 30px; font-size: 11.5px; color: #666; }\n        .signature-section { margin-top: 40px; display: flex; justify-content: space-between; }\n        h1 { font-size: 22px; color: #000; margin: 0; }\n        h2 { font-size: 18px; margin-top: 30px; }\n        .anagrafica-table { width: 100%; margin-top: 20px; }\n        .anagrafica-table td { padding: 8px 0; border-bottom: 1px dotted #ccc; }\n        .anagrafica-table td:first-child { font-weight: bold; width: 40%; }\n        .footer { position: absolute; bottom: 10mm; left: 0; right: 0; text-align: center; font-size: 10px; }\n        .products-table tfoot td { font-weight: bold; background-color: #f8f8f8; }\n    </style>\n</head>\n<body>\n    <div class=\"page\">\n        <div class=\"header\">\n            <div class=\"company-info\">\n                <img src=\"https://i.ibb.co/gM9q4DSs/logo-smi.png\" alt=\"Logo SMI Spa\" class=\"logo\"><br>\n                c.da Revota, snc<br>\n                86014 Guardiaregia (CB)<br>\n                P.IVA 00926900705<br>\n                tel. e fax 0874.785373<br>\n                www.smistore.it - info@smistore.it\n            </div>\n            <div class=\"title-container\">\n                <h1>OFFERTA/PREVENTIVO<br>N° ${preventivo.numero}</h1>\n            </div>\n            <div class=\"cert-info\">\n                <img src=\"https://i.ibb.co/DH87PPYN/logo-abicert.png\" alt=\"Logo Certificazione\" style=\"width: 100px; margin-bottom: 5px;\">\n                <div style=\"font-size: 8px; line-height: 1.4;\">\n                    Cert. n. 1982 – CPR – 283<br>\n                    Sistema di Controllo della Produzione in<br>\n                    Fabbrica di Aggregati Naturali<br>\n                    Cert. n. 1982 – CPR – 691<br>\n                    Sistema di Controllo della Produzione in<br>\n                    Fabbrica di Miscele Bituminose\n                </div>\n            </div>\n        </div>\n        <div class=\"content\">\n            <div class=\"client-info-grid\">\n                <div><strong>CLIENTE:</strong><br>${cliente.ragioneSociale || ''}</div>\n                <div><strong>P. IVA/C.F:</strong><br>${cliente.partitaIva || ''}</div>\n                <div><strong>INDIRIZZO:</strong><br>${cliente.indirizzo || ''}</div>\n                <div><strong>COMUNE (PV):</strong><br>${cliente.localita || ''} (${cliente.provincia || ''}) ${cliente.cap || ''}</div>\n                <div><strong>C.A. RESPONSABILE:</strong><br>${lavoro.responsabile || ''}</div>\n                <div><strong>E-MAIL:</strong><br>${cliente.email || ''}</div>\n            </div>\n            <p><strong>Oggetto:</strong> ${lavoro.descrizione || ''} presso ${lavoro.indirizzo || ''}, ${lavoro.localita || ''}, ${lavoro.cap || ''}</p>\n            <p>Facendo seguito alla Vs. gentile richiesta, con la presente abbiamo il piacere di inviarVi la nostra migliore offerta per i lavori in oggetto, eseguiti secondo le direttive e le indicazioni tecniche della Vs. Direzione Lavori:</p>\n            <h2>Fornitura in opera di conglomerato bituminoso del tipo:</h2>\n            <table class=\"products-table\">\n                <thead>\n                    <tr>\n                        <th>PRODOTTO</th>\n                        <th class=\"text-center\">PESO kg/mc</th>\n                        <th class=\"text-right\">Q.TA' mc ca.</th>\n                        <th class=\"text-right\">PREZZO €/Mc +IVA</th>\n                        <th class=\"text-right\">TOTALE +IVA</th>\n                    </tr>\n                </thead>\n                <tbody>\n                    ${righeProdotti}\n                </tbody>\n                <tfoot>\n                    <tr>\n                        <td colspan=\"4\" class=\"text-right\"><strong>TOTALE IMPONIBILE</strong></td>\n                        <td class=\"text-right\"><strong>€ ${preventivo.totale_arrotondato}</strong></td>\n                    </tr>\n                </tfoot>\n            </table>\n            <div class=\"terms\">\n                 <p>Il materiale va controllato sia quantitativamente che qualitativamente al momento della consegna, il peso è quello che risulta dalle nostre apparecchiature elettromeccaniche di pesatura. Le forniture sono subordinate alla disponibilità della merce. Il ritardato o omesso pagamento determinerà l’addebito degli interessi di mora come disposto dal D-Lgs n. 231 del 09/10/2002, e sue successive modifiche, sull’insoluto dal giorno dell’insolvenza fino a quello dell’estinzione del debito, la immediata sospensione della fornitura, la decadenza dei prezzi particolari (se pattuiti) e l’applicazione dei prezzi del listino generale.</p>\n                <p>PAGAMENTO: da concordare | CONSEGNA: da definire | VALIDITA': 60 GG</p>\n                <p>La SMI Srl, si assume la responsabilità del danno cagionato da difetti del suo prodotto. Poiché la situazione meteorologica può condizionare l’efficacia dei lavori di stesa del conglomerato bituminoso, la responsabilità della SMI Srl è esclusa in: 1. Presenza di precipitazioni atmosferiche, poiché quando il conglomerato bituminoso viene posato su un piano di stesa bagnato dalla pioggia perde rapidamente calore e si raffredda repentinamente; la compattazione diventa difficoltosa e poco efficace; pertanto le condizioni meteorologiche possono pregiudicare la perfetta riuscita dei lavori. 2. Presenza di vento e velocità di raffreddamento, poiché la stesa in presenza di vento forte determina una situazione di rischio, in quanto il tempo di raffreddamento della miscela si riduce drasticamente; in tali condizioni anche il trasporto del conglomerato bituminoso diventa particolarmente problematico. 3. Presenza di temperature basse, (sia del suolo che dell’aria).</p>\n                <p>Per eventuali controversie unico Foro competente è quello di Campobasso.</p>\n            </div>\n            <div class=\"signature-section\">\n                <div>\n                    <p>Cogliamo l'occasione per porgere distinti saluti.</p>\n                    <p>Guardiaregia, lì ${preventivo.data}</p>\n                </div>\n                <div>\n                    <p>PER ACCETTAZIONE</p>\n                    <br><br>\n                    <p>_________________________</p>\n                </div>\n            </div>\n        </div>\n        <div class=\"footer\">Pag. 1 di 2</div>\n    </div>\n\n    <div class=\"page page-break\">\n        <div class=\"header\">\n             <div class=\"company-info\">\n                <img src=\"https://i.ibb.co/gM9q4DSs/logo-smi.png\" alt=\"Logo SMI Spa\" class=\"logo\">\n            </div>\n            <div class=\"title-container\">\n                <h1>ANAGRAFICA DELL'OPERA</h1>\n            </div>\n            <div class=\"cert-info\">\n                <strong>OFFERTA/PREVENTIVO N° ${preventivo.numero}</strong>\n            </div>\n        </div>\n        <div class=\"content\">\n            <table class=\"anagrafica-table\">\n                <tr><td>COMMITTENTE:</td><td>${cliente.ragioneSociale || ''}</td></tr>\n                <tr><td>ENTE APPALTANTE:</td><td></td></tr>\n                <tr><td>RESPONSABILE DEI LAVORI:</td><td>${lavoro.responsabile || ''}</td></tr>\n                <tr><td>COORDINATORE PER L'ESECUZIONE:</td><td></td></tr>\n                <tr><td>NATURA DELL'OPERA:</td><td>${lavoro.descrizione || ''}</td></tr>\n                \n                <tr><td>UBICAZIONE CANTIERE:</td><td>${lavoro.indirizzo || ''}, ${lavoro.cap || ''} ${lavoro.localita || ''}</td></tr>\n                \n                <tr><td>IMPORTO LAVORI:</td><td>€ ${preventivo.totale_arrotondato}</td></tr>\n                <tr><td>CODICE IDENTIFICATIVO GARA (CIG):</td><td></td></tr>\n                <tr><td>CODICE UNICO DI PROGETTO (CUP):</td><td></td></tr>\n            </table>\n        </div>\n        <div class=\"footer\">Pag. 2 di 2</div>\n    </div>\n</body>\n</html>\n`;\n\n// ====================================================================\n// PARTE FINALE JAVASCRIPT (INVARIATA)\n// ====================================================================\ndati.html = html;\nreturn [{ json: dati }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        1920
+      ],
+      "id": "2c1b4618-83ba-464a-add6-8dfa4e09d0e5",
+      "name": "Crea Template HTML"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "92c857af-2683-4edf-910a-9c8338cb9331",
+              "name": "html",
+              "value": "={{ $json.html.base64Encode() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -896,
+        1920
+      ],
+      "id": "cefb6c56-7b23-4543-9388-fd95f3698aaa",
+      "name": "trasforma HTML"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Crea Template HTML').item.json.cliente.email }}",
+        "subject": "=Preventivo N. {{ $('Crea Template HTML').item.json.preventivo.numero }}",
+        "message": "=<p>Gentile <strong>{{ $('Crea Template HTML').item.json.cliente.ragioneSociale }}</strong>,</p>\n<p>come richiesto, le inviamo in allegato la nostra migliore offerta.\n<p>Siamo a sua completa disposizione per qualsiasi domanda o chiarimento.</p>\n<p>Un cordiale saluto,<br>\n<strong>SMI Spa</strong></p>",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        1920
+      ],
+      "id": "803219af-9938-4b41-99b6-543a21fcde00",
+      "name": "Invia mail",
+      "webhookId": "8c67266e-4359-40b6-b952-6a5a8ff65013",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "LsZu8UudHgNziqU9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appE8Y5xdH5P8fbD6",
+          "mode": "list",
+          "cachedResultName": "prodotti finale",
+          "cachedResultUrl": "https://airtable.com/appE8Y5xdH5P8fbD6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblyjqEVkoEWzJlOn",
+          "mode": "list",
+          "cachedResultName": "Contatori",
+          "cachedResultUrl": "https://airtable.com/appE8Y5xdH5P8fbD6/tblyjqEVkoEWzJlOn"
+        },
+        "filterByFormula": "{Nome} = \"Preventivi\"",
+        "returnAll": false,
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1792,
+        1920
+      ],
+      "id": "d08ca927-990f-4330-bcb9-450a2b515eb0",
+      "name": "Leggi Contatore Preventivi",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "LQVaugJUfvpQjHKn",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appE8Y5xdH5P8fbD6",
+          "mode": "list",
+          "cachedResultName": "prodotti finale",
+          "cachedResultUrl": "https://airtable.com/appE8Y5xdH5P8fbD6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblyjqEVkoEWzJlOn",
+          "mode": "list",
+          "cachedResultName": "Contatori",
+          "cachedResultUrl": "https://airtable.com/appE8Y5xdH5P8fbD6/tblyjqEVkoEWzJlOn"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nome": "={{ $('Leggi Contatore Preventivi').item.json.Nome }}",
+            "Ultimo_Numero": "={{ $json.nuovoNumeroContatore }}"
+          },
+          "matchingColumns": [
+            "Nome"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Nome",
+              "displayName": "Nome",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ultimo_Numero",
+              "displayName": "Ultimo_Numero",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1344,
+        1920
+      ],
+      "id": "70f3a6f4-ef26-42c8-8172-6f0c1e54eaef",
+      "name": "Aggiorna Contatore",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "LQVaugJUfvpQjHKn",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n-gotenberg.l8gvko.easypanel.host//forms/chromium/convert/html",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "=files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -448,
+        1920
+      ],
+      "id": "03ee6249-85b7-459a-adc6-6729fe85bc41",
+      "name": "Genera PDF GOTENBERG",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "wvZj8RHOAb8KJlkb",
+          "name": "Gotenberg"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        1920
+      ],
+      "id": "c212acf3-d248-4233-b700-3c497fc5fb47",
+      "name": "Converti"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data",
+        "options": {
+          "fileName": "=Preventivo-{{ $('Calcola Preventivo Finale').item.json.preventivo.numero }}",
+          "mimeType": "application/pdf"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        1920
+      ],
+      "id": "b5fb2534-13f6-4cf1-9d8b-49db01b9b4ca",
+      "name": "Modifica nome PDF"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appE8Y5xdH5P8fbD6",
+          "mode": "list",
+          "cachedResultName": "prodotti finale",
+          "cachedResultUrl": "https://airtable.com/appE8Y5xdH5P8fbD6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblcU8uUn7qCoOJ4k",
+          "mode": "list",
+          "cachedResultName": "Preventivi_Generati",
+          "cachedResultUrl": "https://airtable.com/appE8Y5xdH5P8fbD6/tblcU8uUn7qCoOJ4k"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Numero_Preventivo": "={{ $('Calcola Preventivo Finale').item.json.preventivo.numero }}",
+            "Cliente": "={{ $('Calcola Preventivo Finale').item.json.cliente.ragioneSociale }}",
+            "Data_generazione": "2025-08-25T16:30:57",
+            "Totale in Euro": "={{ $('Calcola Preventivo Finale').item.json.preventivo.totale }}",
+            "Stato": "Inviato"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Numero_Preventivo",
+              "displayName": "Numero_Preventivo",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Data_generazione",
+              "displayName": "Data_generazione",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Totale in Euro",
+              "displayName": "Totale in Euro",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Stato",
+              "displayName": "Stato",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Inviato",
+                  "value": "Inviato"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        1920
+      ],
+      "id": "f8fdbd74-38b3-4813-807f-1dc1fadda014",
+      "name": "Aggiorna tabella",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "LQVaugJUfvpQjHKn",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appNdTi5VqTrLJqE2",
+          "mode": "list",
+          "cachedResultName": "Prodotti",
+          "cachedResultUrl": "https://airtable.com/appNdTi5VqTrLJqE2"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblkOY2KgE5JhjUf4",
+          "mode": "list",
+          "cachedResultName": "Clienti_Richieste",
+          "cachedResultUrl": "https://airtable.com/appNdTi5VqTrLJqE2/tblkOY2KgE5JhjUf4"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Codice_Cliente": "={{ $json.fields.Codice_Cliente }}",
+            "Tipo_Cliente": "={{ $json.fields.Tipo_Cliente }}",
+            "Ragione_Sociale": "={{ $json.fields.Ragione_Sociale }}",
+            "Indirizzo_fatturazione": "={{ $json.fields.Indirizzo_fatturazione }}",
+            "Localita": "={{ $json.fields.Localita }}",
+            "CAP": "={{ $json.fields.CAP }}",
+            "Provincia": "={{ $json.fields.Provincia }}",
+            "Telefono": "={{ $json.fields.Telefono }}",
+            "Fax": "={{ $json.fields.Fax }}",
+            "Partita_IVA": "={{ $json.fields.Partita_IVA }}",
+            "Modalita_Pagamento": "={{ $json.fields.Modalita_Pagamento }}",
+            "Banca_Appoggio": "={{ $json.fields.Banca_Appoggio }}",
+            "Indirizzo_Lavori": "={{ $json.fields.Indirizzo_Lavori }}",
+            "Località_Lavori": "={{ $json.fields['Località_Lavori'] }}",
+            "CAP_Lavori": "={{ $json.fields.CAP_Lavori }}",
+            "Distanza_KM": "={{ $json.fields.Distanza_KM }}",
+            "Descrizione_Lavori": "={{ $json.fields.Descrizione_Lavori }}",
+            "Responsabile_Nome_Cognome": "={{ $json.fields.Responsabile_Nome_Cognome }}",
+            "Responsabile_Cell": "={{ $json.fields.Responsabile_Cell }}",
+            "Responsabile_Fax": "={{ $json.fields.Responsabile_Fax }}",
+            "Responsabile_Email": "={{ $json.fields.Responsabile_Email }}",
+            "Posa_Opera": "={{ $json.fields.Posa_Opera }}",
+            "Compattazione": "={{ $json.fields.Compattazione }}",
+            "Prodotti_Richiesti": "={{ $json.fields.Prodotti_Richiesti }}",
+            "Quantità TOUT-VENANT CB 32 BASE in mc": "={{ $json.fields['Quantità TOUT-VENANT CB 32 BASE in mc'] }}",
+            "Quantità BINDERINO CB 16 BINDER in mc": "={{ $json.fields['Quantità BINDERINO CB 16 BINDER in mc'] }}",
+            "Quantità BINDER CB 20 BINDER in mc": "={{ $json.fields['Quantità BINDER CB 20 BINDER in mc'] }}",
+            "Quantità TAPPETINO CB 8 USURA in mc": "={{ $json.fields['Quantità TAPPETINO CB 8 USURA in mc'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Codice_Cliente",
+              "displayName": "Codice_Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Tipo_Cliente",
+              "displayName": "Tipo_Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Impresa",
+                  "value": "Impresa"
+                },
+                {
+                  "name": "Privato",
+                  "value": "Privato"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ragione_Sociale",
+              "displayName": "Ragione_Sociale",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Indirizzo_fatturazione",
+              "displayName": "Indirizzo_fatturazione",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Localita",
+              "displayName": "Localita",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "CAP",
+              "displayName": "CAP",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Provincia",
+              "displayName": "Provincia",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fax",
+              "displayName": "Fax",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Partita_IVA",
+              "displayName": "Partita_IVA",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Modalita_Pagamento",
+              "displayName": "Modalita_Pagamento",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Assegno",
+                  "value": "Assegno"
+                },
+                {
+                  "name": "Bonifico",
+                  "value": "Bonifico"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Banca_Appoggio",
+              "displayName": "Banca_Appoggio",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Indirizzo_Lavori",
+              "displayName": "Indirizzo_Lavori",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Località_Lavori",
+              "displayName": "Località_Lavori",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "CAP_Lavori",
+              "displayName": "CAP_Lavori",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Distanza_KM",
+              "displayName": "Distanza_KM",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Descrizione_Lavori",
+              "displayName": "Descrizione_Lavori",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Responsabile_Nome_Cognome",
+              "displayName": "Responsabile_Nome_Cognome",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Responsabile_Cell",
+              "displayName": "Responsabile_Cell",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Responsabile_Fax",
+              "displayName": "Responsabile_Fax",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Responsabile_Email",
+              "displayName": "Responsabile_Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Posa_Opera",
+              "displayName": "Posa_Opera",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Vibrofinitrice",
+                  "value": "Vibrofinitrice"
+                },
+                {
+                  "name": "A mano",
+                  "value": "A mano"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Compattazione",
+              "displayName": "Compattazione",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Rullo",
+                  "value": "Rullo"
+                },
+                {
+                  "name": "Piastra vibrante",
+                  "value": "Piastra vibrante"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Prodotti_Richiesti",
+              "displayName": "Prodotti_Richiesti",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "options": [
+                {
+                  "name": "TOUT-VENANT CB 32 BASE",
+                  "value": "TOUT-VENANT CB 32 BASE"
+                },
+                {
+                  "name": "BINDER CB 20 BINDER",
+                  "value": "BINDER CB 20 BINDER"
+                },
+                {
+                  "name": "BINDERINO CB 16 BINDER",
+                  "value": "BINDERINO CB 16 BINDER"
+                },
+                {
+                  "name": "TAPPETINO CB 8 USURA",
+                  "value": "TAPPETINO CB 8 USURA"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Quantità TOUT-VENANT CB 32 BASE in mc",
+              "displayName": "Quantità TOUT-VENANT CB 32 BASE in mc",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Quantità BINDER CB 20 BINDER in mc",
+              "displayName": "Quantità BINDER CB 20 BINDER in mc",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Quantità BINDERINO CB 16 BINDER in mc",
+              "displayName": "Quantità BINDERINO CB 16 BINDER in mc",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Quantità TAPPETINO CB 8 USURA in mc",
+              "displayName": "Quantità TAPPETINO CB 8 USURA in mc",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Data_richiesta",
+              "displayName": "Data_richiesta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -3808,
+        1280
+      ],
+      "id": "e4082dde-ab7c-4c65-a753-917fa7580484",
+      "name": "Crea Riga",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "LQVaugJUfvpQjHKn",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ac6a9ccd-52aa-45d9-b8a1-683b203d7f0a",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "L'indirizzo del cantiere sembra incompleto (manca il numero civico). [line 54]",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3136,
+        1824
+      ],
+      "id": "cadbb894-0b0a-4554-a167-f5dba7722217",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Prepara Token Distanza').item.json.fields.Responsabile_Email }}",
+        "subject": "Attenzione: Dati incompleti nella sua richiesta di preventivo",
+        "message": "=<!DOCTYPE html>\n<html lang=\"it\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Dati Incompleti Richiesta Preventivo</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; font-size: 16px; line-height: 1.6; color: #333;\">\n\n    <p>Gentile cliente,</p>\n\n    <p>abbiamo ricevuto la sua richiesta di preventivo, ma sembra che ci sia un'imprecisione nei dati del cantiere che ci impedisce di calcolare la distanza correttamente.</p>\n\n    <p>In particolare, l'indirizzo del luogo dei lavori sembra incompleto.</p>\n\n    <p>Per favore, le chiediamo di compilare nuovamente il form assicurandosi di inserire:</p>\n\n    <ul style=\"list-style-type: none; padding-left: 0;\">\n        <li><strong>Indirizzo Lavori:</strong> La via e il numero civico completi (es. Via Roma, 123).</li>\n        <li><strong>Località Lavori:</strong> Il Comune del cantiere (es. Termoli).</li>\n        <li><strong>CAP Lavori:</strong> Il CAP corretto di 5 cifre (es. 86039).</li>\n    </ul>\n\n    <p>Può usare il seguente link per accedere nuovamente al form:</p>\n\n    <p style=\"margin-top: 20px; margin-bottom: 20px;\">\n        <a href=\"https://tally.so/r/wzkXZR\" target=\"_blank\" style=\"background-color: #007bff; color: #ffffff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;\">\n            Apri il Form di Richiesta\n        </a>\n    </p>\n\n    <p>Ci scusiamo per il disturbo e restiamo a sua completa disposizione per qualsiasi chiarimento.</p>\n\n    <p>Cordiali Saluti,<br>\n    <strong>Il Team SMI</strong></p>\n\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -2912,
+        1728
+      ],
+      "id": "d68bc61a-9176-49fa-ba2b-56548cdb90f8",
+      "name": "Send a message",
+      "webhookId": "b282c8f2-7570-4a85-a971-4f6799743ce1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "LsZu8UudHgNziqU9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- CONFIGURAZIONE: INSERISCI I NOMI ESATTI DEI TUOI NODI QUI ---\nconst NOME_NODO_FORM = \"form pulito\";\nconst NOME_NODO_DEAL = \"HubSpot Crea Deal\";\nconst NOME_NODO_SET = \"Prepara Token\";\nconst NOME_NODO_CONTATORE = \"Leggi Contatore Preventivi\";\n\n// --- CONFIGURAZIONE AIRTABLE ---\nconst AIRTABLE_BASE_ID = 'appE8Y5xdH5P8fbD6';\nconst PRODOTTI_TABLE_ID = 'tblZdBANrOu27UGWW';\nconst CONFIG_TABLE_ID = 'tblAHL63rOCNvGT5V';\n\n// ====================================================================\n// FUNZIONI HELPER\n// ====================================================================\nfunction parseNumeroSicuro(valore, nomeCampo) {\n  if (valore === null || valore === undefined) throw new Error(`Il campo '${nomeCampo}' è vuoto.`);\n  let stringaPulita = String(valore).trim().replace(',', '.');\n  const numero = parseFloat(stringaPulita);\n  if (isNaN(numero)) throw new Error(`Valore non valido ('${valore}') per il campo '${nomeCampo}'.`);\n  return numero;\n}\n\nasync function fetchAirtableData(tableId, tokenValue) {\n  const response = await this.helpers.httpRequest({\n    url: `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableId}`,\n    headers: { 'Authorization': tokenValue },\n    json: true,\n  });\n  return response.records.map(record => record.fields).filter(fields => fields && Object.keys(fields).length > 0);\n}\n\n// ====================================================================\n// ESECUZIONE PRINCIPALE\n// ====================================================================\ntry {\n  // --- Lettura dati iniziali ---\n  const token = $items(NOME_NODO_SET)[0].json.airtableTokenValue;\n  const [dbProdotti, dbConfigRaw] = await Promise.all([\n    fetchAirtableData.call(this, PRODOTTI_TABLE_ID, token),\n    fetchAirtableData.call(this, CONFIG_TABLE_ID, token)\n  ]);\n  const formData = $items(NOME_NODO_FORM)[0].json.fields;\n  const dealData = $items(NOME_NODO_DEAL)[0].json;\n  const datiContatore = $items(NOME_NODO_CONTATORE)[0].json;\n\n  // --- Logica Numero Preventivo ---\n  const ultimoNumero = datiContatore.Ultimo_Numero;\n  const nuovoNumero = ultimoNumero + 1;\n  const annoCorrente = new Date().getFullYear();\n  const numeroFormattato = String(nuovoNumero).padStart(3, '0');\n  const numeroPreventivo = `SMI-${annoCorrente}-${numeroFormattato}`;\n\n  // --- Creazione Oggetto Config ---\n  const config = {};\n  dbConfigRaw.forEach(c => {\n    if (c.Parametro) { config[c.Parametro] = parseNumeroSicuro(c.Valore, `Valore per ${c.Parametro}`); }\n  });\n\n  // --- Raccolta Prodotti Richiesti dal Form ---\n  const prodottiRichiesti = [];\n  let quantitaTotaleMC = 0;\n  if (formData.Prodotti_Richiesti && Array.isArray(formData.Prodotti_Richiesti)) {\n    formData.Prodotti_Richiesti.forEach(prodottoNome => {\n      const nomeProdottoPulito = prodottoNome.replace(/ in mc$/, '').trim();\n      let quantitaFieldName = `Quantità ${nomeProdottoPulito}`;\n      let quantita = formData[quantitaFieldName];\n      if (quantita === undefined) {\n        quantitaFieldName = `Quantità ${nomeProdottoPulito} in mc`;\n        quantita = formData[quantitaFieldName];\n      }\n      if (quantita > 0) {\n            const quantitaNum = parseNumeroSicuro(quantita, quantitaFieldName);\n            prodottiRichiesti.push({ nome: nomeProdottoPulito, quantita: quantitaNum });\n            quantitaTotaleMC += quantitaNum;\n      }\n    });\n  }\n  if (prodottiRichiesti.length === 0) throw new Error(\"Nessun prodotto valido trovato nel form.\");\n\n  // --- GESTIONE DURATA LAVORI ---\n  const durataLavoriGiorni = parseNumeroSicuro(formData['Durata_Spostamento_Giorni'], 'Durata_Spostamento_Giorni');\n\n  // --- CALCOLI GENERALI E MARGINI ---\n  const margineProduzione = (1 + config.Spese_Generali_Produzione / 100) * (1 + config.Utile_Impresa_Produzione / 100);\n  const margineServizi = (1 + config.Utile_Impresa_Servizi / 100) * (1 + config.Ricarico_Listino_Servizi / 100);\n\n  // ====================================================================\n  // --- CALCOLO DEI COSTI DI SERVIZIO (Eseguiti UNA SOLA VOLTA) ---\n  // ====================================================================\n  // Calcolo costo trasporto\n  const numeroViaggiTotali = parseNumeroSicuro(formData.Numero_Viaggi, 'Numero_Viaggi');\n  const tempoSingoloViaggioOre = (parseNumeroSicuro(formData.Distanza_KM, \"Distanza_KM\") * 2) / config.Velocità_Media;\n  const costoTrasportoTotale = tempoSingoloViaggioOre * config.Costo_Autocarro * numeroViaggiTotali;\n  const costoTrasportoBaseMC = costoTrasportoTotale / quantitaTotaleMC;\n  const costoTrasportoMarginatoMC = costoTrasportoBaseMC * margineServizi;\n\n  // Calcolo Spostamento Dinamico\n  const oreDiSpostamento = parseNumeroSicuro(formData.Durata_Spostamento_Ore, 'Durata_Spostamento_Ore');\n  const costoFissoSquadraDinamico = config.Costo_Base_Operaio_Spostamento * parseNumeroSicuro(formData.Numero_Operai, 'Numero_Operai') * oreDiSpostamento;\n  const costoFissoAutocarroDinamico = config.Costo_Base_Autocarro_Spostamento * oreDiSpostamento;\n  const costoMobilizzazioneUnaTantum = costoFissoSquadraDinamico + costoFissoAutocarroDinamico;\n  const metriCubialGiorno = quantitaTotaleMC / durataLavoriGiorni;\n  if (metriCubialGiorno === 0) { throw new Error(\"I metri cubi al giorno non possono essere zero.\"); }\n  const costoSpostamentoBaseMC = costoMobilizzazioneUnaTantum / metriCubialGiorno;\n  const costoFissiPerMC = costoSpostamentoBaseMC * margineServizi;\n  \n  // Calcolo Posa\n  const costoFissoAttrezzature = config.Costo_Fisso_Vibrofinitrice + config.Costo_Fisso_Rullo + config.Costo_Fisso_Rullo_Piccolo;\n  const costoDinamicoOperai = config.Costo_Base_Operaio_Posa * parseNumeroSicuro(formData.Numero_Operai, 'Numero_Operai');\n  const costoDinamicoAutocarri = config.Costo_Base_Autocarro_Posa * 1;\n  const costoPosaBaseDaUsare = costoFissoAttrezzature + costoDinamicoOperai + costoDinamicoAutocarri;\n  const produzionePrevistaMCGiorno = quantitaTotaleMC / durataLavoriGiorni;\n  const produzioneOrariaRichiesta = produzionePrevistaMCGiorno / parseNumeroSicuro(formData.Durata_Posa_Ore, 'Durata_Posa_Ore');\n  const costoPosaBaseMC = costoPosaBaseDaUsare / produzioneOrariaRichiesta;\n  const costoPosaMarginatoMC = costoPosaBaseMC * margineServizi;\n\n  // --- CALCOLO FINALE PER PRODOTTO ---\n  let subtotaleArrotondato = 0;\n  let subtotalePreciso = 0;\n  const dettaglioProdotti = prodottiRichiesti.map(prodotto => {\n    const infoProdottoDB = dbProdotti.find(p => p.Nome_Formulario && p.Nome_Formulario.trim().toLowerCase() === prodotto.nome.trim().toLowerCase());\n    if (!infoProdottoDB) throw new Error(`Prodotto \"${prodotto.nome}\" non trovato.`);\n    \n    // CALCOLO COSTO MATERIALE\n    const costoProduzioneBaseMC = parseNumeroSicuro(infoProdottoDB.Costo_Base_MC, `Costo_Base_MC per ${infoProdottoDB.Nome_Formulario}`);\n    const costoProduzioneMarginatoMC = costoProduzioneBaseMC * margineProduzione;\n    const costoMaterialeArrotondatoMC = Math.round(costoProduzioneMarginatoMC);\n    \n    // SOMMA DEL MATERIALE SPECIFICO CON I COSTI DI SERVIZIO CONDIVISI\n    const prezzoFinaleProdottoMC = costoMaterialeArrotondatoMC + costoPosaMarginatoMC + costoTrasportoMarginatoMC + costoFissiPerMC;\n    const prezzoUnitarioArrotondato = Math.round(prezzoFinaleProdottoMC);\n    \n    const totaleRigaArrotondato = prezzoUnitarioArrotondato * prodotto.quantita;\n    const totaleRigaPreciso = prezzoFinaleProdottoMC * prodotto.quantita;\n    \n    subtotaleArrotondato += totaleRigaArrotondato;\n    subtotalePreciso += totaleRigaPreciso;\n    \n    return {\n      codice: infoProdottoDB.Codice_Interno,\n      descrizione: prodotto.nome,\n      quantita: prodotto.quantita,\n      prezzoUnitarioMC: prezzoUnitarioArrotondato.toFixed(2),\n      totale: totaleRigaArrotondato.toFixed(2),\n      peso: infoProdottoDB.Peso_MC,\n      dettaglio_costi_mc: {\n          materiale: costoProduzioneMarginatoMC.toFixed(3),\n          trasporto: costoTrasportoMarginatoMC.toFixed(3),\n          spostamento: costoFissiPerMC.toFixed(3),\n          posa: costoPosaMarginatoMC.toFixed(3)\n      }\n    };\n  });\n\n  // --- SEZIONE OUTPUT ---\n  const datiOutput = {\n    cliente: { ragioneSociale: formData.Ragione_Sociale, indirizzo: formData.Indirizzo_fatturazione, localita: formData.Localita, cap: formData.CAP, provincia: formData.Provincia, partitaIva: formData.Partita_IVA, email: formData.Responsabile_Email },\n    lavoro: { descrizione: formData.Descrizione_Lavori, indirizzo: formData.Indirizzo_Lavori, cap: formData.CAP_Lavori, localita: formData.Località_Lavori, distanzaKm: parseNumeroSicuro(formData.Distanza_KM, \"Distanza_KM\"), responsabile: formData.Responsabile_Nome_Cognome, durataStimataGiorni: durataLavoriGiorni },\n    preventivo: {\n      numero: numeroPreventivo,\n      data: new Date().toLocaleDateString('it-IT'),\n      dettaglioProdotti: dettaglioProdotti,\n      totale_preciso: subtotalePreciso.toFixed(3),\n      totale_arrotondato: subtotaleArrotondato.toFixed(2)\n    },\n    prodotti: dbProdotti,\n    hubspotDealId: dealData.id,\n    nuovoNumeroContatore: nuovoNumero,\n    idRecordContatore: datiContatore.id\n  };\n\n  return [{ json: datiOutput }];\n\n} catch (error) {\n  if (error.response) { throw new Error(`Errore API Airtable: ${JSON.stringify(error.response.data)}`); }\n  throw error;\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1408,
+        1536
+      ],
+      "id": "a9dcd796-1737-46c3-972e-aad10b0e9c1c",
+      "name": "Calcola Preventivo Finale2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- CONFIGURAZIONE: INSERISCI I NOMI ESATTI DEI TUOI NODI QUI ---\nconst NOME_NODO_FORM = \"form pulito\";\nconst NOME_NODO_DEAL = \"HubSpot Crea Deal\";\nconst NOME_NODO_SET = \"Prepara Token\";\nconst NOME_NODO_CONTATORE = \"Leggi Contatore Preventivi\";\n\n// --- CONFIGURAZIONE AIRTABLE ---\nconst AIRTABLE_BASE_ID = 'appE8Y5xdH5P8fbD6';\nconst PRODOTTI_TABLE_ID = 'tblZdBANrOu27UGWW';\nconst CONFIG_TABLE_ID = 'tblAHL63rOCNvGT5V';\n\n// ====================================================================\n// FUNZIONI HELPER\n// ====================================================================\nfunction parseNumeroSicuro(valore, nomeCampo) {\n  if (valore === null || valore === undefined) throw new Error(`Il campo '${nomeCampo}' è vuoto.`);\n  let stringaPulita = String(valore).trim().replace(',', '.');\n  const numero = parseFloat(stringaPulita);\n  if (isNaN(numero)) throw new Error(`Valore non valido ('${valore}') per il campo '${nomeCampo}'.`);\n  return numero;\n}\n\nasync function fetchAirtableData(tableId, tokenValue) {\n  const response = await this.helpers.httpRequest({\n    url: `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableId}`,\n    headers: { 'Authorization': tokenValue },\n    json: true,\n  });\n  return response.records.map(record => record.fields).filter(fields => fields && Object.keys(fields).length > 0);\n}\n\n// ====================================================================\n// ESECUZIONE PRINCIPALE\n// ====================================================================\ntry {\n  // --- Lettura dati iniziali ---\n  const token = $items(NOME_NODO_SET)[0].json.airtableTokenValue;\n  const [dbProdotti, dbConfigRaw] = await Promise.all([\n    fetchAirtableData.call(this, PRODOTTI_TABLE_ID, token),\n    fetchAirtableData.call(this, CONFIG_TABLE_ID, token)\n  ]);\n  const formData = $items(NOME_NODO_FORM)[0].json.fields;\n  const dealData = $items(NOME_NODO_DEAL)[0].json;\n  const datiContatore = $items(NOME_NODO_CONTATORE)[0].json;\n\n  // --- Logica Numero Preventivo ---\n  const ultimoNumero = datiContatore.Ultimo_Numero;\n  const nuovoNumero = ultimoNumero + 1;\n  const annoCorrente = new Date().getFullYear();\n  const numeroFormattato = String(nuovoNumero).padStart(3, '0');\n  const numeroPreventivo = `SMI-${annoCorrente}-${numeroFormattato}`;\n\n  // --- Creazione Oggetto Config ---\n  const config = {};\n  dbConfigRaw.forEach(c => {\n    if (c.Parametro) { config[c.Parametro] = parseNumeroSicuro(c.Valore, `Valore per ${c.Parametro}`); }\n  });\n\n  // --- Raccolta Prodotti Richiesti dal Form ---\n  const prodottiRichiesti = [];\n  let quantitaTotaleMC = 0;\n  if (formData.Prodotti_Richiesti && Array.isArray(formData.Prodotti_Richiesti)) {\n    formData.Prodotti_Richiesti.forEach(prodottoNome => {\n        const quantitaFieldName = `Quantità ${prodottoNome} in mc`;\n        const quantita = formData[quantitaFieldName];\n        if (quantita > 0) {\n            const quantitaNum = parseNumeroSicuro(quantita, quantitaFieldName);\n            prodottiRichiesti.push({ nome: prodottoNome, quantita: quantitaNum });\n            quantitaTotaleMC += quantitaNum;\n        }\n    });\n  }\n  if (prodottiRichiesti.length === 0) throw new Error(\"Nessun prodotto valido trovato nel form.\");\n\n  // --- GESTIONE DURATA LAVORI ---\n  const durataLavoriGiorni = parseNumeroSicuro(formData['Durata_Spostamento_Giorni'], 'Durata_Spostamento_Giorni');\n\n  // --- CALCOLI GENERALI E MARGINI ---\n  const margineProduzione = (1 + config.Spese_Generali_Produzione / 100) * (1 + config.Utile_Impresa_Produzione / 100);\n  const margineServizi = (1 + config.Utile_Impresa_Servizi / 100) * (1 + config.Ricarico_Listino_Servizi / 100);\n\n  // Calcolo costo trasporto\n  const numeroViaggiTotali = parseNumeroSicuro(formData.Numero_Viaggi, 'Numero_Viaggi');\n  const numeroViaggi = numeroViaggiTotali / durataLavoriGiorni;\n  // La formula (Distanza * 2 / Velocità) calcola il tempo in ORE. Per vederlo in minuti, basta moltiplicare per 60.\n  const tempoSingoloViaggioOre = (parseNumeroSicuro(formData.Distanza_KM, \"Distanza_KM\") * 2) / config.Velocità_Media;\n  const costoTrasportoTotale = tempoSingoloViaggioOre * config.Costo_Autocarro * numeroViaggi;\n  const costoTrasportoBaseMC = costoTrasportoTotale / quantitaTotaleMC;\n  const costoTrasportoMarginatoMC = costoTrasportoBaseMC * margineServizi;\n\n  // Calcolo Spostamento Dinamico\n  const oreDiSpostamento = parseNumeroSicuro(formData.Durata_Spostamento_Ore, 'Durata_Spostamento_Ore');\n  const costoFissoSquadraDinamico = config.Costo_Base_Operaio_Spostamento * parseNumeroSicuro(formData.Numero_Operai, 'Numero_Operai') * oreDiSpostamento;\n  const costoFissoAutocarroDinamico = config.Costo_Base_Autocarro_Spostamento * oreDiSpostamento;\n  const costoMobilizzazioneUnaTantum = costoFissoSquadraDinamico + costoFissoAutocarroDinamico;\n  const metriCubialGiorno = quantitaTotaleMC / durataLavoriGiorni;\n  if (metriCubialGiorno === 0) { throw new Error(\"I metri cubi al giorno non possono essere zero.\"); }\n  const costoSpostamentoBaseMC = costoMobilizzazioneUnaTantum / metriCubialGiorno;\n  const costoFissiPerMC = costoSpostamentoBaseMC * margineServizi;\n  \n  // --- CALCOLO FINALE PER PRODOTTO ---\n  let subtotaleArrotondato = 0;\n  let subtotalePreciso = 0;\n  const dettaglioProdotti = prodottiRichiesti.map(prodotto => {\n    const infoProdottoDB = dbProdotti.find(p => p.Nome_Formulario && p.Nome_Formulario.trim().toLowerCase() === prodotto.nome.trim().toLowerCase());\n    if (!infoProdottoDB) throw new Error(`Prodotto \"${prodotto.nome}\" non trovato.`);\n    \n    // CALCOLO COSTO MATERIALE\n    const costoProduzioneBaseMC = parseNumeroSicuro(infoProdottoDB.Costo_Base_MC, `Costo_Base_MC per ${infoProdottoDB.Nome_Formulario}`);\n    const costoProduzioneMarginatoMC = costoProduzioneBaseMC * margineProduzione;\n    const costoMaterialeArrotondatoMC = Math.round(costoProduzioneMarginatoMC);\n\n    // CALCOLO COSTO POSA\n    let costoPosaBaseDaUsare;\n    if (infoProdottoDB.Costo_Posa_Base_Specifico) {\n        costoPosaBaseDaUsare = parseNumeroSicuro(infoProdottoDB.Costo_Posa_Base_Specifico, 'Costo_Posa_Base_Specifico');\n    } else {\n        const costoFissoAttrezzature = config.Costo_Fisso_Vibrofinitrice + config.Costo_Fisso_Rullo + config.Costo_Fisso_Rullo_Piccolo;\n        const costoDinamicoOperai = config.Costo_Base_Operaio_Posa * parseNumeroSicuro(formData.Numero_Operai, 'Numero_Operai');\n        // ====================================================================\n        // --- MODIFICA: Il tempo di scarico bilico è ora un valore fisso pari a 1 ---\n        const costoDinamicoAutocarri = config.Costo_Base_Autocarro_Posa * 1;\n        // ====================================================================\n        costoPosaBaseDaUsare = costoFissoAttrezzature + costoDinamicoOperai + costoDinamicoAutocarri;\n    }\n    const produzionePrevistaMCGiorno = quantitaTotaleMC / parseNumeroSicuro(formData.Durata_Spostamento_Giorni, 'Durata_Spostamento_Giorni');\n    const produzioneOrariaRichiesta = produzionePrevistaMCGiorno / parseNumeroSicuro(formData.Durata_Posa_Ore, 'Durata_Posa_Ore');\n    const produzioneOrariaDaUsare = infoProdottoDB.Produzione_Oraria_Specifica || produzioneOrariaRichiesta;\n    const costoPosaBaseMC = costoPosaBaseDaUsare / produzioneOrariaDaUsare;\n    const costoPosaMarginatoMC = costoPosaBaseMC * margineServizi;\n    \n    const prezzoFinaleProdottoMC = costoProduzioneMarginatoMC + costoPosaMarginatoMC + costoTrasportoMarginatoMC + costoFissiPerMC;\n    const prezzoUnitarioArrotondato = Math.round(prezzoFinaleProdottoMC);\n    \n    const totaleRigaArrotondato = prezzoUnitarioArrotondato * prodotto.quantita;\n    const totaleRigaPreciso = prezzoFinaleProdottoMC * prodotto.quantita;\n    \n    subtotaleArrotondato += totaleRigaArrotondato;\n    subtotalePreciso += totaleRigaPreciso;\n    \n    return {\n      codice: infoProdottoDB.Codice_Interno,\n      descrizione: prodotto.nome,\n      quantita: prodotto.quantita,\n      prezzoUnitarioMC: prezzoUnitarioArrotondato.toFixed(2),\n      totale: totaleRigaArrotondato.toFixed(2),\n      peso: infoProdottoDB.Peso_MC,\n      dettaglio_costi_mc: {\n          materiale: costoProduzioneMarginatoMC.toFixed(3),\n          trasporto: costoTrasportoMarginatoMC.toFixed(3),\n          spostamento: costoFissiPerMC.toFixed(3),\n          posa: costoPosaMarginatoMC.toFixed(3)\n      }\n    };\n  });\n\n  // --- SEZIONE OUTPUT ---\n  const datiOutput = {\n    cliente: { ragioneSociale: formData.Ragione_Sociale, indirizzo: formData.Indirizzo_fatturazione, localita: formData.Localita, cap: formData.CAP, provincia: formData.Provincia, partitaIva: formData.Partita_IVA, email: formData.Responsabile_Email },\n    lavoro: { descrizione: formData.Descrizione_Lavori, indirizzo: formData.Indirizzo_Lavori, cap: formData.CAP_Lavori, localita: formData.Località_Lavori, distanzaKm: parseNumeroSicuro(formData.Distanza_KM, \"Distanza_KM\"), responsabile: formData.Responsabile_Nome_Cognome, durataStimataGiorni: durataLavoriGiorni },\n    preventivo: {\n      numero: numeroPreventivo,\n      data: new Date().toLocaleDateString('it-IT'),\n      dettaglioProdotti: dettaglioProdotti,\n      totale_preciso: subtotalePreciso.toFixed(3),\n      totale_arrotondato: subtotaleArrotondato.toFixed(2)\n    },\n    prodotti: dbProdotti,\n    hubspotDealId: dealData.id,\n    nuovoNumeroContatore: nuovoNumero,\n    idRecordContatore: datiContatore.id\n  };\n\n  return [{ json: datiOutput }];\n\n} catch (error) {\n  if (error.response) { throw new Error(`Errore API Airtable: ${JSON.stringify(error.response.data)}`); }\n  throw error;\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        2144
+      ],
+      "id": "b47e0947-4690-4c03-b89c-f74343708441",
+      "name": "Calcola Preventivo Finale1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- CONFIGURAZIONE: INSERISCI I NOMI ESATTI DEI TUOI NODI QUI ---\nconst NOME_NODO_FORM = \"form pulito\";\nconst NOME_NODO_DEAL = \"HubSpot Crea Deal\";\nconst NOME_NODO_SET = \"Prepara Token\";\nconst NOME_NODO_CONTATORE = \"Leggi Contatore Preventivi\";\n\n// --- CONFIGURAZIONE AIRTABLE ---\nconst AIRTABLE_BASE_ID = 'appE8Y5xdH5P8fbD6';\nconst PRODOTTI_TABLE_ID = 'tblZdBANrOu27UGWW';\nconst CONFIG_TABLE_ID = 'tblAHL63rOCNvGT5V';\n\n// ====================================================================\n// FUNZIONI HELPER\n// ====================================================================\nfunction parseNumeroSicuro(valore, nomeCampo) {\n  if (valore === null || valore === undefined) throw new Error(`Il campo '${nomeCampo}' è vuoto.`);\n  let stringaPulita = String(valore).trim().replace(',', '.');\n  const numero = parseFloat(stringaPulita);\n  if (isNaN(numero)) throw new Error(`Valore non valido ('${valore}') per il campo '${nomeCampo}'.`);\n  return numero;\n}\n\nasync function fetchAirtableData(tableId, tokenValue) {\n  const response = await this.helpers.httpRequest({\n    url: `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableId}`,\n    headers: { 'Authorization': tokenValue },\n    json: true,\n  });\n  return response.records.map(record => record.fields).filter(fields => fields && Object.keys(fields).length > 0);\n}\n\n// ====================================================================\n// ESECUZIONE PRINCIPALE\n// ====================================================================\ntry {\n  // --- Lettura dati iniziali ---\n  const token = $items(NOME_NODO_SET)[0].json.airtableTokenValue;\n  const [dbProdotti, dbConfigRaw] = await Promise.all([\n    fetchAirtableData.call(this, PRODOTTI_TABLE_ID, token),\n    fetchAirtableData.call(this, CONFIG_TABLE_ID, token)\n  ]);\n  const formData = $items(NOME_NODO_FORM)[0].json.fields;\n  const dealData = $items(NOME_NODO_DEAL)[0].json;\n  const datiContatore = $items(NOME_NODO_CONTATORE)[0].json;\n\n  // --- Logica Numero Preventivo ---\n  const ultimoNumero = datiContatore.Ultimo_Numero;\n  const nuovoNumero = ultimoNumero + 1;\n  const annoCorrente = new Date().getFullYear();\n  const numeroFormattato = String(nuovoNumero).padStart(3, '0');\n  const numeroPreventivo = `SMI-${annoCorrente}-${numeroFormattato}`;\n\n  // --- Creazione Oggetto Config ---\n  const config = {};\n  dbConfigRaw.forEach(c => {\n    if (c.Parametro) { config[c.Parametro] = parseNumeroSicuro(c.Valore, `Valore per ${c.Parametro}`); }\n  });\n\n  // --- Raccolta Prodotti Richiesti dal Form ---\n  const prodottiRichiesti = [];\n  let quantitaTotaleMC = 0;\n  if (formData.Prodotti_Richiesti && Array.isArray(formData.Prodotti_Richiesti)) {\n    formData.Prodotti_Richiesti.forEach(prodottoNome => {\n      const nomeProdottoPulito = prodottoNome.replace(/ in mc$/, '').trim();\n      let quantitaFieldName = `Quantità ${nomeProdottoPulito}`;\n      let quantita = formData[quantitaFieldName];\n      if (quantita === undefined) {\n        quantitaFieldName = `Quantità ${nomeProdottoPulito} in mc`;\n        quantita = formData[quantitaFieldName];\n      }\n      if (quantita > 0) {\n            const quantitaNum = parseNumeroSicuro(quantita, quantitaFieldName);\n            prodottiRichiesti.push({ nome: nomeProdottoPulito, quantita: quantitaNum });\n            quantitaTotaleMC += quantitaNum;\n      }\n    });\n  }\n  if (prodottiRichiesti.length === 0) throw new Error(\"Nessun prodotto valido trovato nel form.\");\n\n  // --- GESTIONE DURATA LAVORI ---\n  const durataLavoriGiorni = parseNumeroSicuro(formData['Durata_Spostamento_Giorni'], 'Durata_Spostamento_Giorni');\n\n  // --- CALCOLI GENERALI E MARGINI ---\n  const margineProduzione = (1 + config.Spese_Generali_Produzione / 100) * (1 + config.Utile_Impresa_Produzione / 100);\n  const margineServizi = (1 + config.Utile_Impresa_Servizi / 100) * (1 + config.Ricarico_Listino_Servizi / 100);\n\n  // --- CALCOLO DEI COSTI DI SERVIZIO CONDIVISI ---\n  const numeroViaggiTotali = parseNumeroSicuro(formData.Numero_Viaggi, 'Numero_Viaggi');\n  const tempoSingoloViaggioOre = (parseNumeroSicuro(formData.Distanza_KM, \"Distanza_KM\") * 2) / config.Velocità_Media;\n  const costoTrasportoTotale = tempoSingoloViaggioOre * config.Costo_Autocarro * numeroViaggiTotali;\n  const costoTrasportoBaseMC = costoTrasportoTotale / quantitaTotaleMC;\n  const costoTrasportoMarginatoMC = costoTrasportoBaseMC * margineServizi;\n\n  const oreDiSpostamento = parseNumeroSicuro(formData.Durata_Spostamento_Ore, 'Durata_Spostamento_Ore');\n  const costoFissoSquadraDinamico = config.Costo_Base_Operaio_Spostamento * parseNumeroSicuro(formData.Numero_Operai, 'Numero_Operai') * oreDiSpostamento;\n  const costoFissoAutocarroDinamico = config.Costo_Base_Autocarro_Spostamento * oreDiSpostamento;\n  const costoMobilizzazioneUnaTantum = costoFissoSquadraDinamico + costoFissoAutocarroDinamico;\n  const metriCubialGiorno = quantitaTotaleMC / durataLavoriGiorni;\n  if (metriCubialGiorno === 0) { throw new Error(\"I metri cubi al giorno non possono essere zero.\"); }\n  const costoSpostamentoBaseMC = costoMobilizzazioneUnaTantum / metriCubialGiorno;\n  const costoFissiPerMC = costoSpostamentoBaseMC * margineServizi;\n  \n  const costoFissoAttrezzature = config.Costo_Fisso_Vibrofinitrice + config.Costo_Fisso_Rullo + config.Costo_Fisso_Rullo_Piccolo;\n  const costoDinamicoOperai = config.Costo_Base_Operaio_Posa * parseNumeroSicuro(formData.Numero_Operai, 'Numero_Operai');\n  const costoDinamicoAutocarri = config.Costo_Base_Autocarro_Posa * 1;\n  const costoPosaBaseDaUsare = costoFissoAttrezzature + costoDinamicoOperai + costoDinamicoAutocarri;\n  const produzionePrevistaMCGiorno = quantitaTotaleMC / durataLavoriGiorni;\n  const produzioneOrariaRichiesta = produzionePrevistaMCGiorno / parseNumeroSicuro(formData.Durata_Posa_Ore, 'Durata_Posa_Ore');\n  const costoPosaBaseMC = costoPosaBaseDaUsare / produzioneOrariaRichiesta;\n  const costoPosaMarginatoMC = costoPosaBaseMC * margineServizi;\n\n  // --- CALCOLO FINALE PER PRODOTTO ---\n  let subtotaleArrotondato = 0;\n  let subtotalePreciso = 0;\n  const dettaglioProdotti = prodottiRichiesti.map(prodotto => {\n    const infoProdottoDB = dbProdotti.find(p => p.Nome_Formulario && p.Nome_Formulario.trim().toLowerCase() === prodotto.nome.trim().toLowerCase());\n    if (!infoProdottoDB) throw new Error(`Prodotto \"${prodotto.nome}\" non trovato.`);\n    \n    // CALCOLO COSTO MATERIALE\n    const costoProduzioneBaseMC = parseNumeroSicuro(infoProdottoDB.Costo_Base_MC, `Costo_Base_MC per ${infoProdottoDB.Nome_Formulario}`);\n    const costoProduzioneMarginatoMC = costoProduzioneBaseMC * margineProduzione;\n    // --- MODIFICA: Rimosso arrotondamento intermedio del materiale ---\n\n    // La produttività specifica del prodotto viene usata se presente (per Antiskid/Drenante)\n    const produzioneOrariaDaUsare = infoProdottoDB.Produttivita_Posa_Specifica || produzioneOrariaRichiesta;\n    const costoPosaBaseMC_specifico = costoPosaBaseDaUsare / produzioneOrariaDaUsare;\n    const costoPosaMarginatoMC_specifico = costoPosaBaseMC_specifico * margineServizi;\n    \n    // --- MODIFICA: Somma dei valori con tutti i decimali ---\n    const prezzoFinaleProdottoMC = costoProduzioneMarginatoMC + costoPosaMarginatoMC_specifico + costoTrasportoMarginatoMC + costoFissiPerMC;\n    const prezzoUnitarioArrotondato = Math.round(prezzoFinaleProdottoMC);\n    \n    const totaleRigaArrotondato = prezzoUnitarioArrotondato * prodotto.quantita;\n    const totaleRigaPreciso = prezzoFinaleProdottoMC * prodotto.quantita;\n    \n    subtotaleArrotondato += totaleRigaArrotondato;\n    subtotalePreciso += totaleRigaPreciso;\n    \n    return {\n      codice: infoProdottoDB.Codice_Interno,\n      descrizione: prodotto.nome,\n      quantita: prodotto.quantita,\n      prezzoUnitarioMC: prezzoUnitarioArrotondato.toFixed(2),\n      totale: totaleRigaArrotondato.toFixed(2),\n      peso: infoProdottoDB.Peso_MC,\n      dettaglio_costi_mc: {\n          materiale: costoProduzioneMarginatoMC.toFixed(3),\n          trasporto: costoTrasportoMarginatoMC.toFixed(3),\n          spostamento: costoFissiPerMC.toFixed(3),\n          posa: costoPosaMarginatoMC_specifico.toFixed(3)\n      }\n    };\n  });\n\n  // --- SEZIONE OUTPUT ---\n  const datiOutput = {\n    cliente: { ragioneSociale: formData.Ragione_Sociale, indirizzo: formData.Indirizzo_fatturazione, localita: formData.Localita, cap: formData.CAP, provincia: formData.Provincia, partitaIva: formData.Partita_IVA, email: formData.Responsabile_Email },\n    lavoro: { descrizione: formData.Descrizione_Lavori, indirizzo: formData.Indirizzo_Lavori, cap: formData.CAP_Lavori, localita: formData.Località_Lavori, distanzaKm: parseNumeroSicuro(formData.Distanza_KM, \"Distanza_KM\"), responsabile: formData.Responsabile_Nome_Cognome, durataStimataGiorni: durataLavoriGiorni },\n    preventivo: {\n      numero: numeroPreventivo,\n      data: new Date().toLocaleDateString('it-IT'),\n      dettaglioProdotti: dettaglioProdotti,\n      totale_preciso: subtotalePreciso.toFixed(3),\n      totale_arrotondato: subtotaleArrotondato.toFixed(2)\n    },\n    prodotti: dbProdotti,\n    hubspotDealId: dealData.id,\n    nuovoNumeroContatore: nuovoNumero,\n    idRecordContatore: datiContatore.id\n  };\n\n  return [{ json: datiOutput }];\n\n} catch (error) {\n  if (error.response) { throw new Error(`Errore API Airtable: ${JSON.stringify(error.response.data)}`); }\n  throw error;\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        1920
+      ],
+      "id": "dc8c2a25-6754-4d33-b197-beb480ecfa4b",
+      "name": "Calcola Preventivo Finale"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Converti in base": {
+      "main": [
+        [
+          {
+            "node": "Genera PDF GOTENBERG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara Token": {
+      "main": [
+        [
+          {
+            "node": "Leggi Contatore Preventivi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara Token Distanza": {
+      "main": [
+        [
+          {
+            "node": "Pulisci dati",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepara Token Distanza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pulisci dati": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "form pulito": {
+      "main": [
+        [
+          {
+            "node": "Crea impresa in HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crea impresa in HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Associa Cliente in HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Associa Cliente in HubSpot": {
+      "main": [
+        [
+          {
+            "node": "HubSpot Crea Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot Crea Deal": {
+      "main": [
+        [
+          {
+            "node": "Prepara Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crea Template HTML": {
+      "main": [
+        [
+          {
+            "node": "trasforma HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "trasforma HTML": {
+      "main": [
+        [
+          {
+            "node": "Converti in base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invia mail": {
+      "main": [
+        [
+          {
+            "node": "Aggiorna tabella",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leggi Contatore Preventivi": {
+      "main": [
+        [
+          {
+            "node": "Calcola Preventivo Finale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggiorna Contatore": {
+      "main": [
+        [
+          {
+            "node": "Crea Template HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Genera PDF GOTENBERG": {
+      "main": [
+        [
+          {
+            "node": "Converti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converti": {
+      "main": [
+        [
+          {
+            "node": "Modifica nome PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modifica nome PDF": {
+      "main": [
+        [
+          {
+            "node": "Invia mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crea Riga": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "form pulito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcola Preventivo Finale2": {
+      "main": [
+        []
+      ]
+    },
+    "Calcola Preventivo Finale": {
+      "main": [
+        [
+          {
+            "node": "Aggiorna Contatore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6904032c-873d-40a8-88d3-8ce22bf17e7c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "540663e0a85878d3bf491b2efc5aa091adf37c0e3f38f1baf860d98ffe0c819b"
+  },
+  "id": "eR6rcBsLEzdTWFrB",
+  "tags": [
+    {
+      "updatedAt": "2025-09-29T21:34:07.043Z",
+      "createdAt": "2025-09-29T21:34:07.043Z",
+      "id": "oVDNw4lErJpQRhvU",
+      "name": "SMI"
+    }
+  ]
+}
