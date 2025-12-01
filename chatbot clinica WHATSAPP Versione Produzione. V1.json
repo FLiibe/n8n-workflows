@@ -1,0 +1,1699 @@
+{
+  "name": "chatbot clinica WHATSAPP Versione Produzione. V1",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('messaggiofinale').item.json.messaggi }}",
+        "options": {
+          "systemMessage": "=```\nSei Bianca, segretaria virtuale presso la Clinica Libe, incaricata di assistere i pazienti con gli appuntamenti del Dott. Francesco.\n\n## Contesto Generale e Natura delle Interazioni: ##\nSei il principale punto di contatto digitale per tutti i pazienti della Clinica Libe. Il tuo ruolo si concentra sull'offerta di assistenza rapida ed efficiente per la gestione completa degli appuntamenti (prenotazione, riprogrammazione, cancellazione, verifica) e sulla fornitura di informazioni generali sulla clinica e i suoi servizi.\n\nÈ fondamentale che tu riconosca che i pazienti potrebbero essere nuovi o non avere alcuna familiarità con la Clinica Libe o i suoi protocolli. Perciò, ## NON DARE MAI PER SCONTATE LE LORO CONOSCENZE ## riguardo ai nostri servizi, alle procedure o alla struttura. Comunica sempre in modo ## estremamente chiaro, completo e facilmente comprensibile ##, fornendo tutte le informazioni necessarie passo dopo passo. Mantieni sempre un atteggiamento ## accogliente, paziente e disponibile ##, guidando ogni paziente con semplicità e professionalità attraverso le loro richieste.\n\n🎯 Il tuo Obiettivo Principale:\nGuidare ogni paziente attraverso un processo strutturato per garantire che ogni operazione (prenotazione, riprogrammazione, cancellazione, verifica appuntamenti) venga eseguita correttamente e verificata nel sistema ESCLUSIVAMENTE tramite i tool a tua disposizione.\n\n🔒 Regole d'Oro (DA NON INFRANGERE MAI):\n\nNON INVENTARE MAI INFORMAZIONI O OPERAZIONI:\nOgni azione (conferma, cancellazione, modifica di appuntamenti, verifica) deve passare ESCLUSIVAMENTE attraverso la chiamata al tool agendamento.\nNon formulare risposte che anticipino o simulino l'output di questo tool.\n\nSEGUI SCRUPOLOSAMENTE IL FLUSSO OBBLIGATORIO:\nNon deviare o saltare alcun passaggio del flusso operativo prestabilito.\nSe l'utente fornisce informazioni in un ordine inatteso, RIPORTA SEMPRE la conversazione al passaggio corrente e richiesto dal flusso.\n\nCHIEDI I DATI MANCANTI SENZA ESITAZIONE:\nSe non hai tutte le informazioni indispensabili per eseguire una chiamata a un tool (ad esempio, ID paziente, motivo della visita, data, orario, range temporale per la verifica), la tua UNICA AZIONE è richiederle in modo chiaro e specifico all'utente.\nNon cercare di procedere con informazioni incomplete.\n\nUSA ESCLUSIVAMENTE I DATI PROVENIENTI DAI TOOL:\nTutte le informazioni relative a disponibilità, orari specifici e conferme di appuntamenti DEVONO PROVENIRE e basarsi SOLO sull'output ricevuto dai tuoi tool.\nSe un tool non fornisce una risposta, non puoi fornirla neanche tu verbalmente.\n\nRISERVATEZZA ASSOLUTA DEI DATI SENSIBILI:\nMAI divulgare informazioni sanitarie personali, dettagli di appuntamenti altrui, dati finanziari, storico clinico o qualsiasi altra informazione sensibile che non sia direttamente e strettamente pertinente alla conversazione in corso CON L'UTENTE AUTENTICATO.\nNon menzionare, fare riferimento o alludere in alcun modo ad altri pazienti, anche in forma anonima. La conversazione deve rimanere strettamente focalizzata sull'utente corrente e sulle sue specifiche richieste relative ai suoi appuntamenti.\n\nLIMITA LE INFORMAZIONI ALL'AMBITO DI COMPETENZA:\nFornisci solo le informazioni sui servizi e sugli appuntamenti come specificato nel tuo flusso operativo.\nNon fornire consigli medici, dietetici o nutrizionali diretti, né interpretare risultati clinici. Il tuo ruolo è di assistere nella gestione degli appuntamenti e fornire informazioni sui servizi, non di sostituire il professionista sanitario.\n\n## GESTIONE DI RICHIESTE FUORI SCOPO: ##\nSe l'utente pone una domanda o richiede assistenza su argomenti che non rientrano direttamente nella gestione degli appuntamenti o nelle informazioni generali sui servizi della Clinica Libe (es. consigli medici personali, previsioni del tempo, informazioni non sanitarie), rispondi gentilmente che la tua competenza è limitata a queste aree.\nFrase Esempio: \"Mi scuso, sono qui per assisterti con gli appuntamenti e le informazioni sui servizi della Clinica Libe. Non sono in grado di rispondere a domande su [argomento specifico menzionato].\"\n\n## GESTIONE DELL'ID DEL PROFESSIONISTA (profissional_id): ##\nIl \"profissional_id\" è un dato interno e ## NON DEVE MAI ESSERE CHIESTO O CONFERMATO ALL'UTENTE ##.\nAssumi sempre che il \"profissional_id\" sia \"1\" (corrispondente al Dott. Francesco) per tutte le operazioni che lo richiedono nel tool \"agendamento\" (es. prenotazione, modifica, cancellazione).\nSe un appuntamento viene verificato (evento \"verificare\"), e l'ID del professionista è restituito dal tool, utilizzalo, ma MAI menzionarlo o chiederlo all'utente. Se non restituito, continua a usare \"1\".\nQuesto dato è gestito automaticamente dal sistema e non fa parte delle informazioni che il paziente deve fornire.\n\n✅ Flusso Operativo Obbligatorio (da seguire in ordine):\nOgni conversazione deve seguire scrupolosamente questi passaggi:\n\nPASSAGGIO 0: Benvenuto e Determinazione dell'Intento Iniziale\nLa PRIMA azione è sempre salutare il cliente e capire la sua esigenza principale.\n\nIstruzioni per l'AI:\n- **Saluto Iniziale Dinamico:** Inizia la conversazione con un saluto amichevole e un benvenuto alla Clinica Libe. Presentati come Bianca, la tua assistente virtuale. Successivamente, chiedi al cliente in modo accogliente come puoi assisterlo oggi, specificando le aree di competenza principali (es. informazioni sulla clinica o sui nostri servizi, oppure la gestione di un appuntamento come prenotare, riprogrammare, cancellare o verificare). **Varia leggermente la formulazione del benvenuto e della domanda iniziale ogni volta che un nuovo cliente inizia una conversazione per evitare ripetizioni esatte, pur mantenendo i punti chiave.**\n- Utilizza il tool \"Think\": All'inizio di ogni interazione, consulta il tool think per identificare correttamente l'intento del messaggio ricevuto dall'utente (informazioni sulla clinica/servizi, prenotare, riprogrammare, cancellare appuntamento, verificare appuntamenti esistenti o cercare disponibilità).\n- In base all'output generato dal tool think, attiva poi il modulo o il passaggio successivo più adatto tra gestione appuntamenti (che porta al Passaggio 1), informazioni sulla clinica, o informazioni sui servizi.\n- Se l'utente esprime l'intenzione di cercare informazioni sulla clinica o sui nostri servizi, l'AI dovrà essere pronta a fornire dettagli (orari, indirizzo, specializzazioni, ecc.) o una descrizione più approfondita dei servizi offerti. Questo passaggio può ramificarsi in una conversazione informativa.\n- Se l'utente esprime l'intenzione di prenotare, riprogrammare, cancellare o verificare un appuntamento, si procede al PASSAGGIO 1.\n\nPASSAGGIO 1: Identificazione del Paziente\nUna volta che l'utente ha espresso l'intenzione di gestire un appuntamento, si procede con l'identificazione.\n\nFrase Modello: \"Ottimo! Per finalizzare la tua prenotazione, potresti fornirmi il tuo nome completo e CPF? In alternativa, se sei già nostro paziente, puoi semplicemente indicarmi il tuo ID Paziente.\"\n\nNOTA BENE:\nSe il paziente risponde che non ha CPF brasiliano, rispondi che può fornire il numero del passaporto, assicurando che sia di 11 cifre, aggiungendo degli \"0\" alla fine se necessario. Se il cliente fornisce solo il numero di passaporto ricordagli di fornire anche il nome.\n\nIstruzioni per l'AI:\nUna volta ricevute le informazioni necessarie per l'identificazione (nome e un documento/ID):\n1. Estrazione Dati per il Tool \"gestisci_cliente_feegow\":\n   Estrai il nome completo fornito dall'utente e mappalo nel parametro \"nome_completo\" del tool.\n  Estrai il numero di CPF o il numero di passaporto (se fornito) dal messaggio dell'utente. Indipendentemente dal fatto che sia CPF o passaporto, mappa questo numero nel parametro \"cpf\" del tool. L'AI deve essere in grado di riconoscere la sequenza di cifre come il numero identificativo richiesto.\n    Se l'utente fornisce un ID Paziente, mappalo nel parametro \"paciente_id\" del tool.\n    Gestione dell'input del numero: Se l'utente fornisce un numero che contiene caratteri non numerici (es. \"34566543102.\"), l'AI deve tentare di estrarre solo le cifre numeriche da quel numero prima di mapparlo. Per esempio, da \"34566543102.\" estrai \"34566543102\".\n\n2.  Chiamata al Tool:\n    Utilizza immediatamente il tool \"gestisci_cliente_feegow\" con i parametri \"nome_completo\", \"cpf\", e \"paciente_id\" (se fornito).\n\n3.  Gestione del Risultato del Tool:\n    Non procedere senza un \"paciente_id\" valido restituito dal tool. Se il tool non restituisce un ID valido, chiedi all'utente di riprovare a fornire i dati o offri assistenza per la registrazione (riproponendo la richiesta di nome e numero di documento).\n\nPASSAGGIO 2: Definizione dell'Intento Specifico e del Motivo della Visita\nDopo aver verificato il paziente, chiedi il motivo del contatto e il tipo di visita desiderato.\n\nFrase Modello: \"Grazie, [Nome Paziente]. Come posso aiutarti oggi in relazione al tuo appuntamento? Desideri prenotare una nuova visita, riprogrammare, cancellare o verificare appuntamenti esistenti?\"\n\nIstruzioni per l'AI sui Procedimenti:\n\nUna volta che l'utente ha specificato l'intento:\n\nSe l'intento è \"prenotare\":\n    1. Chiedi se il paziente intende utilizzare un piano di salute (assicurazione).\n       Frase Modello per il piano di salute: \"Perfetto! Desideri utilizzare un'assicurazione per questa visita? Ti informo che al momento accettiamo i piani Amil e Bradesco Saúde. Rientra in uno di questi?\"\n    2. Se il paziente risponde affermativamente o fornisce un nome di assicurazione:\n       - Estrai il nome dell'assicurazione fornito dall'utente.\n       - Consulta la lista \"Piani di Salute (Assicurazioni) Accettati\" fornita in questo prompt.\n       - Se il nome dell'assicurazione fornito dall'utente CORRISPONDE a uno della lista, imposta il parametro \"plano\" per il tool \"agendamento\" a \"1\" e il parametro \"convenio_id\" con il valore esatto corrispondente al piano trovato nella lista.\n       - Se il nome dell'assicurazione fornito dall'utente NON CORRISPONDE a nessuno della lista, informa l'utente che quel piano non è accettato e imposta il parametro \"plano\" per il tool \"agendamento\" a \"0\" e il \"convenio_id\" a \"0\".\n       - Se l'utente risponde negativamente (es. \"no\", \"non ho un piano\"), imposta il parametro \"plano\" per il tool \"agendamento\" a \"0\" e il \"convenio_id`\"a \"0\".\n       - Mappa il nome fornito dall'utente nel campo \"obs\" (osservazioni) del tool \"agendamento\" se non riconosciuto, per futura consultazione.\n    3. Una volta gestita la domanda sul piano di salute, chiedi il tipo di servizio desiderato (es. \"che tipo di visita ti interessa?\") e prosegui con la raccolta di data e orario per la prenotazione.\n\nSe l'intento è \"riprogrammare\" o \"cancellare\", procedi immediatamente al PASSAGGIO 2A.\n\nSe l'intento è 'verificare', chiedi il periodo per cui desidera visualizzare gli appuntamenti (es. \"Certo, ti aiuto volentieri a vedere i tuoi appuntamenti! Per che periodo ti interessa cercarli? Ad esempio: \"questa settimana\", \"il prossimo mese\", o \"un intervallo di date preciso.\"). Poi utilizza il tool agendamento con evento: \"verificare\" e data_start/data_end.\n\nPASSAGGIO 2A: Recupero dell'ID dell'Appuntamento per Modifica/Cancellazione\nQuesto passaggio è obbligatorio se l'utente intende riprogrammare o cancellare un appuntamento esistente.\n\nFrase Modello (se l'utente vuole riprogrammare o cancellare e non ha fornito l'ID): \"Per riprogrammare o cancellare un appuntamento, avrei bisogno dell'ID specifico dell'appuntamento. Qual è il periodo per cui vuoi verificare i tuoi appuntamenti? Puoi indicarmi, ad esempio, \"questa settimana\", \"il prossimo mese\"?\"\n\nIstruzioni per l'AI:\n\nPRIORITÀ 1: Ottenere l'agendamento_id diretto: Se l'utente fornisce direttamente un agendamento_id in questo passaggio (ad es. \"Voglio modificare l'appuntamento ID 123\"), utilizzalo.\n\nPRIORITÀ 2: Se l'ID non è fornito, usa il tool di verifica:\n\nRichiedi all'utente un intervallo di date (es. \"questa settimana\", \"il prossimo mese\").\n\nUtilizza il tool agendamento con evento: \"verificare\", paciente_id, data_start e data_end per listare tutti gli appuntamenti del paziente nel periodo specificato.\n\nUna volta ricevuti gli appuntamenti dal tool, presentali all'utente in modo chiaro (ID appuntamento, data, ora) e chiedi di selezionare l'ID dell'appuntamento che intende modificare o cancellare.\n\nNon procedere alla raccolta di altri dettagli (es. nuova data/ora per riprogrammare) o alla conferma della cancellazione finché non hai un agendamento_id valido e confermato dall'utente.\n\nPASSAGGIO 3: Raccolta Dettagli Specifici e Esecuzione (per Prenotazione/Riprogrammazione/Cancellazione)\nUna volta che hai tutti i dati necessari (incluso l'agendamento_id per modifica/cancellazione), procedi con l'azione richiesta.\n\nIstruzioni per l'AI:\n\nSE 'prenotare': Chiedi la data e l'orario desiderati, quindi usa il tool agendamento con evento: 'inserir'.\n\nSE 'riprogrammare': Dopo aver ottenuto l'agendamento_id nel PASSAGGIO 2A, chiedi la nuova data e il nuovo orario desiderati. Poi usa il tool agendamento con evento: 'modificare', passando l'agendamento_id, nuova_data e nuovo_orario.\n\nSE 'cancellare': Dopo aver ottenuto l'agendamento_id nel PASSAGGIO 2A, chiedi una conferma esplicita all'utente (es. \"Sei sicuro di voler cancellare l'appuntamento con ID [agendamento_id]?\"). Se confermato, usa il tool agendamento con evento: 'cancellare', passando l'agendamento_id.\n\nSE 'verificare': Dopo aver ricevuto gli appuntamenti dal tool, presenta un riepilogo leggibile degli appuntamenti al paziente.\n\nServizi Offerti dalla Clinica Libe:\nOgni servizio ha un \"Nome\", un \"ID del Procedimento (procedimento_id)\", un \"ID del Tipo (tipo_id)\" e un \"Prezzo del Procedimento (valor)\".\nFAI RIFERIMENTO SEMPRE A QUESTI VALORI PER I PREZZI QUANDO VENGONO RICHIESTI O SONO NECESSARI PER I TOOL.\n\nNome: \"Avaliação da composição corporal por antropometria\"\nID del Procedimento (procedimento_id): 11\nID del Tipo (tipo_id): 4 (Procedimento)\nPrezzo del Procedimento (valor): 300 R$\n\nNome: \"Avaliação da composição corporal por bioimpedanciometria\"\nID del Procedimento (procedimento_id): 10\nID del Tipo (tipo_id): 4 (Procedimento)\nPrezzo del Procedimento (valor): 300 R$\n\nNome: \"Avaliação da composição corporal por pesagem hidrostática\"\nID del Procedimento (procedimento_id): 12\nID del Tipo (tipo_id): 4 (Procedimento)\nPrezzo del Procedimento (valor): 300 R$\n\nNome: \"Avaliação nutricional\"\nID del Procedimento (procedimento_id): 9\nID del Tipo (tipo_id): 2 (Consulta)\nPrezzo del Procedimento (valor): 250 R$\n\nNome: \"Consulta geral\"\nID del Procedimento (procedimento_id): 1\nID del Tipo (tipo_id): 2 (Consulta)\nPrezzo del Procedimento (valor): 100 R$\n\nNome: \"Teleconsulta\"\nID del Procedimento (procedimento_id): 3\nID del Tipo (tipo_id): 2 (Consulta)\nPrezzo del Procedimento (valor): 100 R$\n\nNome: \"Retorno\"\nID del Procedimento (procedimento_id): 2\nID del Tipo (tipo_id): 2 (Consulta)\nPrezzo del Procedimento (valor): 0 R$ (gratuito)\n\nPiani di Salute (Assicurazioni) Accettati:\nQuando un paziente menziona un piano di salute, verifica che sia presente in questa lista per determinare il \"convenio_id\" corretto.\n\nNome del Piano: \"Amil\"\nconvenio_id: \"3\"\n\nNome del Piano: \"Bradesco Saúde\"\nconvenio_id: \"2\"\n\nBreve descrizione dei servizi (da usare quando richiesta):\n\n- Avaliação da composição corporal por antropometria: Questo servizio include una consultazione specialistica e una valutazione della composizione corporea basata su misurazioni antropometriche tramite plicometro, metro e antropometro, per analizzare massa grassa, massa magra e idratazione.\n\n- Avaliação da composição corporal por bioimpedanciometria: Una valutazione della composizione corporea (massa grassa, massa magra, acqua) realizzata con tecnica non invasiva BIA, che utilizza una piccola corrente elettrica.\n\n- Avaliação da composição corporal por pesagem hidrostática: Valutazione altamente precisa della composizione corporea tramite pesata in acqua, calcolando la densità corporea per stimare massa grassa e massa magra.\n\n- Avaliação nutricional: Una consultazione specialistica per valutare abitudini alimentari e stile di vita, e creare un piano nutrizionale personalizzato con consigli mirati.\n\n- Consulta geral: Una visita medica di base per problemi di salute comuni, consigli, prescrizioni o indirizzamento a specialisti.\n\n- Teleconsulta: Consulto medico a distanza (videochiamata/telefono), ideale per chi necessita assistenza senza recarsi in clinica.\n\n- Retorno: Visita di controllo o follow-up gratuita successiva a un consulto precedente, per monitorare progressi e chiarire dubbi.\n\n\nIstruzioni per l'AI sui Procedimenti:\nQuando un utente chiede informazioni sui servizi:\n1.  Elenca i servizi in formato lista, mostrando solo il nome del servizio.\n    Esempio:\n    \"Certamente! Presso la Clinica Libe offriamo i seguenti servizi:\n    - Avaliação da composição corporal por antropometria;\n    - Avaliação da composição corporal por bioimpedanciometria;\n    - Avaliação da composição corporal por pesagem hidrostática;\n    - Avaliação nutricional;\n    - Consulta geral;\n    - Teleconsulta;\n    - Retorno\n\n2. NON mostrare il \"Prezzo del Procedimento (valor)\" a meno che l'utente non lo chieda ESPLICITAMENTE. Se l'utente chiede il prezzo di un servizio, rispondi con il nome del servizio e il suo prezzo esatto prendendolo dalla lista \"Servizi Offerti dalla Clinica Libe\".\n3. Quando un utente vuole prenotare o interagire con un tool che richiede il \"valor\" (prezzo), devi consultare la lista \"Servizi Offerti dalla Clinica Libe\" per identificare il procedimento_id, il tipo_id e il VALORE ESATTO del prezzo (\"valor\") e usarlo nella chiamata al tool.\n4. Se l'utente chiede solo una \"consulta\", senza specificare, puoi suggerire \"Consulta geral\".\n5. Se il cliente è indeciso o chiede un consiglio sul procedimento da scegliere, suggerisci il servizio con il \"Prezzo del Procedimento (valor)\" più alto tra quelli disponibili. Motiva la tua raccomandazione utilizzando la \"Breve descrizione dei servizi\" per evidenziare i benefici o la completezza del servizio più costoso.\n\n📆 Calendario e Prenotazioni:\n## REGOLA FONDAMENTALE - PRIORITÀ MASSIMA ASSOLUTA: ##\nLa clinica è operativa CON ORARIO PERMANENTE e il suo sistema di prenotazione si estende ## IN MODO ILLIMITATO E INDEFINITO NEL FUTURO ##, ben oltre qualsiasi mese o anno corrente.\n## NON ESISTE ALCUNA DATA DI SCADENZA O LIMITE TEMPORALE MASSIMO PER L'OPERATIVITÀ DELLA CLINICA O PER LE PRENOTAZIONI, ## se non i giorni di chiusura settimanale (Venerdì, Sabato, Domenica).\n## NON DEVI MAI, IN NESSUNA CIRCOSTANZA, MENZIONARE, INVENTARE O SUGGERIRE ## date di fine validità, limiti di calendario, periodi massimi di prenotazione (come la fine del mese corrente o qualsiasi altra data arbitraria non esplicitamente definita come chiusura permanente nel prompt). Devi fare riferimento *solo* agli orari e giorni di apertura/chiusura permanenti.\n\nLa data e l'ora di riferimento ATTUALE per il contesto della conversazione (utile per calcoli come \"domani\", \"ieri\" o \"fra X giorni\") sono: 31-07-2025 alle 09:47.\n\nLe visite durano 30 minuti.\n\nLa nostra clinica è aperta dalle 10:00 alle 13:00 e dalle 15:00 alle 18:00, dal lunedi al giovedi.\nQuesti sono gli orari di apertura REGOLARI e PERMANENTI della clinica.\nVenerdi, sabato e domenica la Clinica Libe è CHIUSA.\nNon è consentito in alcun modo prenotare appuntamenti al di fuori di questi giorni e orari di apertura stabiliti.\nUltimi slot possibili per la prenotazione di una visita nei giorni di apertura (lunedi-giovedi):\n- ore 12:30 per il turno diurno\n- ore 17:30 per il turno pomeridiano\n\nREGOLE PER JSON (Tool agendamento):\nQuando utilizzi il tool agendamento, devi generare un JSON che rispetti esattamente questa struttura, con tutti i campi presenti (anche se vuoti). Ogni campo è obbligatorio.\n\nEcco un esempio funzionante:\n\nJSON\n\n{\n  \"local_id\": \"1\",\n  \"paciente_id\": \"1234\",\n  \"profissional_id\": 1,\n  \"procedimento_id\": \"P\",\n  \"data\": \"25-07-2025\",\n  \"horario\": \"14:30:00\",\n  \"valor\": \"500\",\n  \"plano\": \"0\",\n  \"tipo\": \"P\",\n  \"unidade_id\": \"0\",\n  \"data_start\": \"25-07-2025\",\n  \"data_end\": \"25-07-2025\",\n  \"convenio_id\": \"15\",\n  \"agendamento_id\": \"\",\n  \"motivo_id\": \"1\",\n  \"obs\": \"\",\n  \"nuova_data\": \"\",\n  \"nuovo_orario\": \"\",\n  \"evento\": \"\"\n}\nSignificato del campo \"evento\":\n\n\"inserir\": per creare (prenotare) un nuovo appuntamento.\n\n\"modificare\": per riprogrammare un appuntamento esistente (in questo caso agendamento_id deve essere compilato, così come nuova_data e nuovo_orario).\n\n\"cancellare\": per cancellare un appuntamento esistente (in questo caso è necessario solo agendamento_id).\n\n\"verificare\": per visualizzare gli appuntamenti del paziente in un determinato range temporale (necessita di paciente_id, data_start e data_end).\n\n🧠 Suggerimenti per il Comportamento del Modello:\nUtilizza frasi brevi, chiare e professionali, mantenendo un tono naturale, accogliente e leggermente colloquiale (senza essere informale), specialmente quando non sei in modalità \"Gestione Errori\". Evita di suonare meccanica o eccessivamente ripetitiva nelle formulazioni generali.\nNon usare emoji.\nNon dare spiegazioni mediche: concentrati sul lato organizzativo e logistico.\nQuando chiedi informazioni, formula la richiesta prevalentemente come una domanda chiara e diretta, anziché come un'affermazione o un comando imperativo (es. usa \"Qual è il tuo numero?\" o \"Potresti fornirmi la data?\" invece di \"Per favore, indicami il tuo numero.\" o \"Forniscimi la data.\"). Quando fornisci istruzioni o dettagli, sii preciso e conciso. Evita la ridondanza nella stessa risposta. Cerca di variare le formulazioni generali per rendere il dialogo più dinamico.\nUna volta ricevute tutte le informazioni (nome + CPF/ID + tipo visita/operazione + data/orario o range temporale), prosegui con l'azione richiesta.\n\n## Variazioni e Flessibilità Conversazionale Aggiuntive: ##\n\nRiconosci informazioni anticipate:Se l'utente fornisce informazioni (es. nome, CPF, tipo di visita) prima che siano esplicitamente richieste dal passaggio corrente, fai percepire di averle registrate (es. \"Grazie per avermi già fornito il tuo CPF, lo utilizzerò tra un momento.\" o \"Capisco che desideri prenotare una [tipo di visita].\") ma riporta poi la conversazione al dato attualmente necessario per il flusso obbligatorio. Non ripetere la richiesta per dati già chiaramente forniti.\n\nFormulazioni diverse: Non ripetere mai esattamente la stessa frase se devi chiedere la stessa informazione più volte (es. per un errore di input). Prova a riformulare (es. \"Mi scuso, ma ho bisogno che tu mi fornisca [dato specifico] per poter proseguire.\" o \"Potresti per favore confermare [dato specifico] in un formato che posso processare?\").\n\nTransizioni fluide: Utilizza connettivi e frasi di transizione (es. \"Ottimo!\", \"Capisco.\", \"Perfetto.\", \"Proseguiamo...\", \"Per aiutarti al meglio...\", \"Molto bene.\") tra una domanda e l'altra o tra una conferma e un'azione.\n\nGestione errori utente più gentile: In caso di input non valido o mancante, prima di richiedere il dato, usa frasi che esprimano una leggera cortesia o comprensione (es. \"Mi scuso, non sono riuscita a cogliere il dato che mi serve.\", \"Sembra ci sia un piccolo problema con il dato fornito. Potrebbe riprovare?\").\n\n## Chiusura della Conversazione e Disponibilità Finale: ##\n- Una volta che la richiesta principale del paziente è stata soddisfatta e non ci sono ulteriori domande o azioni immediate, chiedi sempre se c'è qualcos'altro in cui puoi assisterlo prima di congedarti.\n- Mantieni un tono di disponibilità per future esigenze.\n- Frase Esempio: \"C'è qualcos'altro in cui posso assisterti oggi, o per ora è tutto?\" oppure \"Spero di esserti stata d'aiuto! Se avessi altre domande o bisogno di assistenza in futuro, sono a tua disposizione.\"\n```"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -2608,
+        320
+      ],
+      "id": "53c85152-c549-4cd6-bc72-5252999ca58a",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -2768,
+        544
+      ],
+      "id": "3e5672ab-b111-4a31-b6d5-fb50b398ef84",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "B4yJlMETi6y35kM1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Nodo di esecuzione \n## Feegow\n",
+        "height": 228,
+        "width": 624,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3296,
+        800
+      ],
+      "id": "01e9523d-8d30-4cbd-8522-20e3340dcf2f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Redis8').item.json.numero }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -2640,
+        544
+      ],
+      "id": "7d13bad1-daef-4a57-8ce3-85e4e5b90615",
+      "name": "memoria",
+      "credentials": {
+        "postgres": {
+          "id": "PGsfU6TwZ00tKl2B",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "=Questo tool rappresenta il motore decisionale conversazionale del chatbot per la gestione degli appuntamenti nella Clinica Libe.\n\nAnalizza l'intento dell'utente e determina la logica da seguire: prenotazione di nuove consultazioni/procedimenti, riprogrammazion o cancellazione. Gestisce inoltre la ricerca di pazienti o appuntamenti esistenti nel sistema Feegow. Attiva anche gli strumenti dedicati per le richieste di informazioni generali sulla Clinica Libe e sui suoi servizi.\nFunzionalità principali:\n\nInterpreta l'intento dell'utente all'interno del flusso conversazionale.\n\nAvvia le azioni appropriate.\n\nGarantisce che le logiche operative e i formati dei dati siano rispettati.\n\nAttiva i moduli di ricerca o azione."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        -2512,
+        544
+      ],
+      "id": "bc71eb9d-62af-4ddd-9bea-f9e576dd78d4",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "read-messages",
+        "instanceName": "={{ $('Crea Variabili').item.json.body.instance }}",
+        "remoteJid": "={{ $('Crea Variabili').item.json.Telefono.toString() }}",
+        "messageId": "={{ $('Crea Variabili').item.json.body.data.key.id }}"
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        496
+      ],
+      "id": "c0172208-67ff-428d-969e-5e4af92f2ed4",
+      "name": "Evolution API",
+      "credentials": {
+        "evolutionApi": {
+          "id": "c50AdLdAS6NtaQRr",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "calendario",
+        "description": "=Usa sempre questo strumento  quando devi recuperare informazioni su un paziente.",
+        "workflowId": {
+          "__rl": true,
+          "value": "NVWMBANT62eSGGuJ",
+          "mode": "id"
+        },
+        "responsePropertyName": "response ",
+        "fields": {
+          "values": [
+            {
+              "name": "celular1",
+              "type": "numberValue",
+              "numberValue": "={{ $('audiointesto').item.json.message.chat.id }}"
+            }
+          ]
+        },
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n    \"nome_completo\": \"JOSE RENATO BARONI\",\n    \"cpf\": \"11111111111\",\n    \"paciente_id\": 6563,\n    \"celular1\": \"21955551234\"\n}"
+      },
+      "id": "eed926d2-90bd-4f26-aabf-98497f2f192a",
+      "name": "gestisci_cliente_feegow",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -2384,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "name": "agendamento",
+        "description": "=Usa sempre questo strumento  quando devi eseguire una prenotazione, cancellazione e riprogrammazione di un appuntamento presso la Clinica Libe.",
+        "workflowId": {
+          "__rl": true,
+          "value": "xnyGV8T1IZhJA9Ba",
+          "mode": "id"
+        },
+        "responsePropertyName": "response ",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n  \"local_id\": \"1\",\n  \"paciente_id\": \"1234\",\n  \"profissional_id\": 1,\n  \"procedimento_id\": \"P\",\n  \"data\": \"25-07-2025\",\n  \"horario\": \"14:30:00\",\n  \"valor\": \"500\",\n  \"plano\": \"0\",\n  \"tipo\": \"P\",\n  \"unidade_id\": \"0\",\n  \"data_start\": \"25-07-2025\",\n  \"data_end\": \"25-07-2025\",\n  \"convenio_id\": \"15\",\n  \"agendamento_id\": \"\",\n  \"motivo_id\": \"1\",\n  \"obs\": \"\",\n  \"nuova_data\": \"\",\n  \"nuovo_orario\": \"\",\n  \"evento\": \"inserir|modificare|cancellare\"\n}"
+      },
+      "id": "12d93d56-afc1-4f7f-9a0e-c5eee3c6ff61",
+      "name": "agendamento",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -2256,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2064,
+        416
+      ],
+      "id": "275e6f46-13bb-4204-ae78-50d4acfd0859",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "keys",
+        "keyPattern": "={{ $('Crea Variabili').item.json.bloccaAgente }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -4624,
+        368
+      ],
+      "id": "7360b684-ace4-43cb-9a28-350bd634cbd9",
+      "name": "Redis6",
+      "credentials": {
+        "redis": {
+          "id": "cpBc2UgXXCb4Wn1l",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 12
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3760,
+        384
+      ],
+      "id": "6ea346a8-8552-4033-9fa2-3e37b41f755c",
+      "name": "Wait1",
+      "webhookId": "00100112-feec-4fa6-a14b-06dc28b50dbe"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "messaggi",
+        "key": "={{ $('Crea Variabili').item.json.messaggioSpezzettato }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -3568,
+        384
+      ],
+      "id": "ec37605b-6743-439c-991f-2f89a30a2c38",
+      "name": "Redis7",
+      "credentials": {
+        "redis": {
+          "id": "cpBc2UgXXCb4Wn1l",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Crea Variabili').item.json.messaggioSpezzettato }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -2992,
+        320
+      ],
+      "id": "0c319b63-e56f-4e9c-876e-58900bd059a4",
+      "name": "Redis8",
+      "credentials": {
+        "redis": {
+          "id": "cpBc2UgXXCb4Wn1l",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "errore agente"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        -2064,
+        224
+      ],
+      "id": "d6683df4-eaff-466f-95ed-69fad5c4ebbb",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $json.numero }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -7088,
+        -720
+      ],
+      "id": "718f446b-465d-4aa3-ab50-ede35ba5aa6f",
+      "name": "Redis9",
+      "credentials": {
+        "redis": {
+          "id": "cpBc2UgXXCb4Wn1l",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_chat_histories",
+          "mode": "list",
+          "cachedResultName": "n8n_chat_histories"
+        },
+        "deleteCommand": "delete",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -7088,
+        -496
+      ],
+      "id": "7d6b7f01-88c6-43a2-87ff-95f2b65008f3",
+      "name": "Postgres1",
+      "credentials": {
+        "postgres": {
+          "id": "PGsfU6TwZ00tKl2B",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "48d4ab73-85ce-44f8-a28f-e9c48d145002",
+              "leftValue": "={{ $json.messaggi.last() }}",
+              "rightValue": "={{ $('Wait1').item.json.messagioAudioPiuTesto }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3392,
+        368
+      ],
+      "id": "441ba81b-0810-4adf-bff6-6979648d6c0e",
+      "name": "If4"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -3216,
+        512
+      ],
+      "id": "c49d6e88-f3e6-4330-b823-de6be1302cbf",
+      "name": "No Operation, do nothing3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Messaggio WhatsApp da dividere e formattare: {{ $json.output }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=OBIETTIVO CHIAVE: Suddividi il messaggio in un numero di parti compreso tra 1 e 3.\nASSOLUTAMENTE NON SUPERARE MAI LE 3 PARTI.\nSono preferibili 2 opzioni \"splitedMessage\", ma il limite massimo è di 3 parti.\n\nRegole di Suddivisione:\n\nSuddividi il messaggio in modo naturale, come farebbe un essere umano.\n\nSuddividi i messaggi solo se trattano argomenti diversi.\n\nNon devi mai troncare il messaggio. Suddividilo dall'inizio alla fine.\n\nNon dividere mai un messaggio vuoto.\n\nOgni volta che hai un link, invialo separatamente senza modifiche.\n\nFormato di Output Obbligatorio (JSON):\nInvia la tua risposta ESATTAMENTE nel seguente formato JSON:\n\n{\n\"messages\": [\n\"splitedMessage\",\n\"splitedMessage\",\n\"splitedMessage\",\n...\n]\n}\n\nAssicurati che la risposta segua ESATTAMENTE questa struttura, comprese le parentesi e le virgolette.\n\nRegole di Markdown (SOLO per WhatsApp):\nAssicurati che la tua risposta segua esattamente le seguenti regole di markdown, lasciando solo '*' per il grassetto e senza mai discostarti dalle altre regole di markdown di WhatsApp:\n\ngrassetto (sostituisci '**' con '*')\n\n~barrato~ (se qualcosa è stato eliminato o modificato)\n\ncorsivo (estremamente raro)\n\nlink (da usare sempre per tutti i link)."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -1840,
+        416
+      ],
+      "id": "24861d3e-92c1-448a-a7ff-5e5023cc50c4",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1840,
+        640
+      ],
+      "id": "74018b01-0997-4bdb-81b4-aca2baac5189",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "B4yJlMETi6y35kM1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"messages\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    }\n  },\n  \"required\": [\"messages\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1648,
+        640
+      ],
+      "id": "73be9013-0dcf-49a6-a83c-7878c0e55b2a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.messages",
+        "options": {
+          "destinationFieldName": "output"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1424,
+        416
+      ],
+      "id": "e6805a78-c910-408c-abb8-1c53185cafd2",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1264,
+        432
+      ],
+      "id": "36d2941b-6427-40e7-83c6-81580ca25cd6",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -928,
+        512
+      ],
+      "id": "3c440719-6bd3-4b9f-be87-d78a972f460c",
+      "name": "Wait2",
+      "webhookId": "fa28e12e-5ac8-4d6a-90a5-1b7173fd79a1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        320
+      ],
+      "id": "89227ade-c6e8-40ce-bc46-a2f23cfc387b",
+      "name": "No Operation, do nothing2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -6416,
+        656
+      ],
+      "id": "5c49f321-7978-4e88-b765-55d1bf4343ff",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ddfc8c08-22d7-43e3-abad-b5cd3dfcdf13",
+              "name": "Nome",
+              "value": "={{ $json.body.data.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "da577156-0336-4cb8-98cf-acb620856825",
+              "name": "Telefono",
+              "value": "={{ $json.body.data.key.remoteJid.replaceAll(\"@s.whatsapp.net\",\"\") }}",
+              "type": "number"
+            },
+            {
+              "id": "3ba0eaa2-46cc-41a9-ac24-1f91aba1acca",
+              "name": "tipoMessaggio",
+              "value": "={{ $json.body.data.messageType }}",
+              "type": "string"
+            },
+            {
+              "id": "e5af360f-3c55-4a41-bccf-0c764bdf6b4c",
+              "name": "fromMe",
+              "value": "={{ $json.body.data.key.fromMe }}",
+              "type": "string"
+            },
+            {
+              "id": "0fd39744-4570-425b-9898-424733135a4e",
+              "name": "bloccaAgente",
+              "value": "BloccaAgente",
+              "type": "string"
+            },
+            {
+              "id": "64bd7c31-7555-4c11-a9dd-85cfb78b19b0",
+              "name": "Messaggio",
+              "value": "={{ $json.body.data.message.conversation }}",
+              "type": "string"
+            },
+            {
+              "id": "7a421dfe-7db5-4ad6-be47-f3e6d7b01bc9",
+              "name": "messaggioSpezzettato",
+              "value": "=MessaggioSpezzettato{{ $json.body.data.key.remoteJid }}",
+              "type": "string"
+            },
+            {
+              "id": "9f425d0a-5d25-476f-8a89-9f3998690930",
+              "name": "UrlBase",
+              "value": "={{ $json.webhookUrl.replaceAll(\"2ebdddad-c0b6-414e-aa82-7ddb595230e0\", \"\") }}",
+              "type": "string"
+            },
+            {
+              "id": "10552911-9fdc-442d-ba69-bcef21e41aa9",
+              "name": "body.instance",
+              "value": "={{ $json.body.instance }}",
+              "type": "string"
+            },
+            {
+              "id": "9282a62e-5434-48e3-accb-b1571b2079c4",
+              "name": "body.data.key.id",
+              "value": "={{ $json.body.data.key.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -6864,
+        560
+      ],
+      "id": "c3753258-6fbc-4d65-9fa1-49bd2bbf674e",
+      "name": "Crea Variabili",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "489c6059-256f-463e-b956-817ad9fef2d8",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -7088,
+        560
+      ],
+      "id": "bd151981-90ca-44ff-9d2c-ba3257bfc0b9",
+      "name": "Webhook",
+      "webhookId": "489c6059-256f-463e-b956-817ad9fef2d8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "56722fd8-a5b1-4a2f-be32-c87cd0f2b3c0",
+              "leftValue": "={{ $json.Telefono }}",
+              "rightValue": "={{ $json.Telefono }}",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -6192,
+        464
+      ],
+      "id": "e12277c4-5839-4afa-81f5-47250bee5c00",
+      "name": "If5",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Crea Variabili').item.json.tipoMessaggio }}",
+                    "rightValue": "conversation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b8a1042f-1d61-4a34-875b-25b15993a2d9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Testo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "87f39adc-b08d-453a-839f-7369a39afe1a",
+                    "leftValue": "={{ $('Crea Variabili').item.json.tipoMessaggio }}",
+                    "rightValue": "audioMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -5968,
+        272
+      ],
+      "id": "d1f4a79a-d973-40d6-95a5-b9242d0bb178",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data.base64",
+        "options": {
+          "fileName": "audio.mp3"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -5520,
+        352
+      ],
+      "id": "6c486822-009e-461c-9449-3d652a4f04ac",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -5296,
+        352
+      ],
+      "id": "eed2ff13-f3e8-42fb-96f9-911fd9f20374",
+      "name": "OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "B4yJlMETi6y35kM1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Registra cliente",
+        "height": 248,
+        "width": 1096
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -6880,
+        800
+      ],
+      "typeVersion": 1,
+      "id": "6ba1f720-fd3f-4705-aa31-e2b6a1feeddc",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "get-media-base64",
+        "instanceName": "Test",
+        "messageId": "={{ $('Webhook').item.json.body.data.key.id }}"
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -5744,
+        352
+      ],
+      "id": "9db97684-fb32-4a01-aea1-dcf41f241430",
+      "name": "Ottenere messaggio in base",
+      "credentials": {
+        "evolutionApi": {
+          "id": "c50AdLdAS6NtaQRr",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Messaggio audio",
+        "height": 244,
+        "width": 1076,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -5744,
+        800
+      ],
+      "typeVersion": 1,
+      "id": "d2ee6a1e-a00b-46ab-9056-b8985ec2a64f",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "# Ferma agente",
+        "height": 236,
+        "width": 200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -4640,
+        800
+      ],
+      "typeVersion": 1,
+      "id": "57756a51-a0c9-4c22-bfee-6ba5b7e668f5",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "# Messaggi\n# Frazionati",
+        "height": 244,
+        "width": 1076,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -4416,
+        800
+      ],
+      "typeVersion": 1,
+      "id": "6a225603-73a0-44f2-80ea-e6664cca6709",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $('Crea Variabili').item.json.bloccaAgente }}",
+        "value": "true",
+        "expire": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -4016,
+        16
+      ],
+      "id": "84a0d9b9-3a5c-4aaf-806c-2762e839717b",
+      "name": "Redis",
+      "credentials": {
+        "redis": {
+          "id": "cpBc2UgXXCb4Wn1l",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0c8160f8-bbb4-462c-ab87-b9f3bac680c6",
+              "leftValue": "={{ $json.BloccaAgente }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4416,
+        368
+      ],
+      "id": "b728d2e5-f36a-4d81-9352-2194a0a5955f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $('Crea Variabili').item.json.messaggioSpezzettato }}",
+        "messageData": "={{ $json.messagioAudioPiuTesto }}",
+        "tail": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -3984,
+        368
+      ],
+      "id": "6416aba8-863d-4b3d-a085-5c00450fbee0",
+      "name": "Redis1",
+      "credentials": {
+        "redis": {
+          "id": "cpBc2UgXXCb4Wn1l",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3355385-ec34-4263-8077-a09905fe46b7",
+              "name": "messaggi",
+              "value": "={{ $('Redis7').item.json.messaggi.join('\\n') }}",
+              "type": "string"
+            },
+            {
+              "id": "30f87a27-b23a-4a3f-b0a3-c75573db3895",
+              "name": "numero",
+              "value": "={{ $('Crea Variabili').item.json.Telefono }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3168,
+        320
+      ],
+      "id": "1260d5aa-9f6e-47b4-a4ed-209226cd91f8",
+      "name": "messaggiofinale"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e65e836b-3fd9-478e-baf3-8133cf07a089",
+              "leftValue": "={{ $json.Telefono }}",
+              "rightValue": "5511915260404",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -6640,
+        560
+      ],
+      "id": "a1fa2b12-c68f-49cc-9cf3-f35ccc78fd7e",
+      "name": "blocca messaggio"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "Registro_clienti",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Telefono",
+              "keyValue": "={{ $json.Telefono }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -6416,
+        464
+      ],
+      "id": "837d277c-7eb6-4232-86d2-af40f5f1f6bc",
+      "name": "controlla se esiste",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "i1mG5KkrMubb5zJK",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "Registro_clienti",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Nome",
+              "fieldValue": "={{ $('Crea Variabili').item.json.Nome }}"
+            },
+            {
+              "fieldId": "Telefono",
+              "fieldValue": "={{ $('Crea Variabili').item.json.Telefono }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -5968,
+        464
+      ],
+      "id": "a6efa78e-4cdd-43fa-9ac4-56f0a2170438",
+      "name": "crea ID",
+      "credentials": {
+        "supabaseApi": {
+          "id": "i1mG5KkrMubb5zJK",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c91c0065-d17a-41f3-8a0f-21772a5670f1",
+              "name": "messagioAudioInTesto",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5072,
+        272
+      ],
+      "id": "151efd60-f469-4188-aab0-65c63fc5d95b",
+      "name": "audiointesto"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $('Crea Variabili').item.json.bloccaAgente }}",
+        "value": "true",
+        "expire": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -4624,
+        160
+      ],
+      "id": "c1c42a40-9cda-4fba-af14-3f68f4e4c12b",
+      "name": "blocca agente",
+      "credentials": {
+        "redis": {
+          "id": "cpBc2UgXXCb4Wn1l",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5d74ff41-ebbc-4cbb-a1c5-f06801d577f0",
+              "leftValue": "={{ $('Crea Variabili').item.json.fromMe }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4848,
+        272
+      ],
+      "id": "50da772f-4f02-4dbd-81b0-2f7016fff4cd",
+      "name": "messaggio mio"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -4224,
+        192
+      ],
+      "id": "7f1aa4aa-0897-4f8c-87ee-909b9905f7c4",
+      "name": "blocca agente1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "547a1227-9df2-4b0b-9c91-465326c0364f",
+              "name": "messagioAudioPiuTesto",
+              "value": "={{ $('Crea Variabili').item.json.Messaggio }}{{ $('audiointesto').item.json.messagioAudioInTesto }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4208,
+        544
+      ],
+      "id": "0e402465-313e-4aab-a059-87529dc68cf8",
+      "name": "unisci audio piu testo"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Crea Variabili').item.json.body.instance }}",
+        "remoteJid": "={{ $('Crea Variabili').item.json.Telefono.toString() }}",
+        "messageText": "={{ $('Split Out').item.json.output }}",
+        "options_message": {
+          "delay": 3000
+        }
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        496
+      ],
+      "id": "690d64b1-ac72-4ba6-9f21-f5aa157c7948",
+      "name": "Enviar texto",
+      "credentials": {
+        "evolutionApi": {
+          "id": "c50AdLdAS6NtaQRr",
+          "name": "Evolution account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-n8n.l8gvko.easypanel.host",
+            "user-agent": "axios/1.7.9",
+            "content-length": "905",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "n8n-n8n.l8gvko.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "74f938eec039",
+            "x-real-ip": "172.18.0.1"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "messages.upsert",
+            "instance": "Test",
+            "data": {
+              "key": {
+                "remoteJid": "5511915260404@s.whatsapp.net",
+                "fromMe": false,
+                "id": "3A158847C0C123DED890"
+              },
+              "pushName": "Balz Studio",
+              "status": "DELIVERY_ACK",
+              "message": {
+                "conversation": "G",
+                "messageContextInfo": {
+                  "deviceListMetadata": {
+                    "senderKeyHash": "cY3BYb2IzZSH4w==",
+                    "senderTimestamp": "1753287011",
+                    "recipientKeyHash": "EvloLgcFIQF7nQ==",
+                    "recipientTimestamp": "1752164853"
+                  },
+                  "deviceListMetadataVersion": 2,
+                  "messageSecret": "sCgBwhB0mWI2ShGXHwvlvLh6yV4cABxayy+r5g0JcGw="
+                }
+              },
+              "messageType": "conversation",
+              "messageTimestamp": 1753967427,
+              "instanceId": "8d53dc06-2277-46ce-b0ad-af9742c2d473",
+              "source": "ios"
+            },
+            "destination": "https://n8n-n8n.l8gvko.easypanel.host/webhook-test/489c6059-256f-463e-b956-817ad9fef2d8",
+            "date_time": "2025-07-31T10:10:27.678Z",
+            "sender": "393397795132@s.whatsapp.net",
+            "server_url": "https://evolution.libei.store",
+            "apikey": "A4856344C37B-4249-A1FF-9E2965B71BD9"
+          },
+          "webhookUrl": "https://n8n-n8n.l8gvko.easypanel.host/webhook-test/489c6059-256f-463e-b956-817ad9fef2d8",
+          "executionMode": "test"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memoria": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evolution API": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gestisci_cliente_feegow": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis6": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Redis7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis7": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis8": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "messaggiofinale",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Evolution API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crea Variabili": {
+      "main": [
+        [
+          {
+            "node": "blocca messaggio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Crea Variabili",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "crea ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "audiointesto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ottenere messaggio in base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "OpenAI1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI1": {
+      "main": [
+        [
+          {
+            "node": "audiointesto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ottenere messaggio in base": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "blocca agente1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "unisci audio piu testo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis1": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "messaggiofinale": {
+      "main": [
+        [
+          {
+            "node": "Redis8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "blocca messaggio": {
+      "main": [
+        [
+          {
+            "node": "controlla se esiste",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "controlla se esiste": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crea ID": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "audiointesto": {
+      "main": [
+        [
+          {
+            "node": "messaggio mio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "messaggio mio": {
+      "main": [
+        [
+          {
+            "node": "blocca agente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redis6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "unisci audio piu testo": {
+      "main": [
+        [
+          {
+            "node": "Redis1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar texto": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "a99c5548-940f-494f-a31f-8a20c22aba50",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "540663e0a85878d3bf491b2efc5aa091adf37c0e3f38f1baf860d98ffe0c819b"
+  },
+  "id": "2t7L1ZD1fY4w9mEG",
+  "tags": [
+    {
+      "updatedAt": "2025-07-25T18:53:05.781Z",
+      "createdAt": "2025-07-25T18:53:05.781Z",
+      "id": "aYnudHAsvqyruHRH",
+      "name": "clinica"
+    },
+    {
+      "updatedAt": "2025-07-29T17:56:24.598Z",
+      "createdAt": "2025-07-29T17:56:24.598Z",
+      "id": "gLHD3KuD39wgIvq8",
+      "name": "whatsapp"
+    }
+  ]
+}

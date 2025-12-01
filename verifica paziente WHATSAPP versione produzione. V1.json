@@ -1,0 +1,916 @@
+{
+  "name": "verifica paziente WHATSAPP versione produzione. V1",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1f3a43cd-47a2-47ab-a483-639322b6d3eb",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.feegow.com/v1/api/patient/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"paciente_cpf\": {{ $('verifica dati input').item.json.cleanCpf }}\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        384
+      ],
+      "id": "40ae97ec-b71e-45fd-949d-ae7f770cf22f",
+      "name": "buscar paciente",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.feegow.com/v1/api/patient/create",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"nome_completo\": \"{{ $('verifica dati input').item.json.formattedNomeCompleto }}\",\n    \"cpf\": \"{{ $('verifica dati input').item.json.cleanCpf }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1472,
+        592
+      ],
+      "id": "d58d021a-c871-4b1a-bc35-88a3505c0ee0",
+      "name": "criar paciente",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.cleanCpf }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "id": "f5d2c63f-27f9-402e-963f-67493d0f432b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ha cpf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3f512a05-bee7-4c1c-ae3b-75c15b0c5409",
+                    "leftValue": "={{ $json.cleanPacienteId }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ha ID"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -160,
+        592
+      ],
+      "id": "ad0faffe-c86c-44ab-98f4-72ae3a48d46b",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "https://api.feegow.com/v1/api/patient/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"paciente_id\": {{ $json.cleanPacienteId }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        64,
+        992
+      ],
+      "id": "fbc4e7a8-3947-43a1-acd8-3aa70e72d36c",
+      "name": "buscar paciente1",
+      "notesInFlow": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.error.message }}\n"
+            },
+            {
+              "content": "=Ricevi un messaggio di errore JSON o una sua parte.\n\nIdentifica il codice HTTP (es. 409, 422) e il contenuto del messaggio (es. \"content\" o i dettagli dei campi per 422).\n\n\n## Gestione degli Errori del Tool (Output Numerico)\nQuando ricevi un output dai tool che indica un errore (es. un JSON con \"success\": false o un campo error o un codice di stato HTTP), NON generare un messaggio per l'utente. Invece, analizza il contenuto dell'errore e fornisci come output ESATTAMENTE uno dei seguenti numeri, senza testo aggiuntivo:\n\n1: Se il messaggio di errore indica che il paziente non e´stato trovato (cerca parole chiave come \"paziente non incontrato\", \"paciente nao encontrado\", \"pacient not found\").\n\n2: \n\n3: Per qualsiasi altro tipo di messaggio di errore (es. errori di validazione 422, errori di autenticazione 401, risorse non trovate 404, errori del server 5xx, o altri errori generici).",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1104,
+        592
+      ],
+      "id": "90f21f64-35e0-45d3-8558-2083306adef3",
+      "name": "Analizza errore1",
+      "credentials": {
+        "openAiApi": {
+          "id": "B4yJlMETi6y35kM1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7475f098-c31b-47ab-b4ea-ad18e911f70e",
+              "name": "response",
+              "value": "=Ottimo! Abbiamo creato il tuo profilo nel nostro sistema. Per le prossime volte, ricorda che il tuo ID paziente è {{ $json.content.paciente_id }}. Ti sarà utile per identificarti rapidamente!",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1696,
+        592
+      ],
+      "id": "196126c3-af11-40be-85e6-bdb185f1f6ca",
+      "name": "Paziente creato"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "582e1489-675a-4cd0-9bdb-cfcbd6679c82",
+              "name": "response",
+              "value": "=Mi dispiace, ma l'ID {{ $('verifica dati input').item.json.cleanPacienteId }} non risulta nel nostro sistema. Potrebbe gentilmente fornirmi il suo numero CPF?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        1184
+      ],
+      "id": "20d513ac-665c-4a77-9251-b44057093e40",
+      "name": "ID non trovato"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.error.message }}\n"
+            },
+            {
+              "content": "=Ricevi un messaggio di errore JSON o una sua parte.\n\nIdentifica il codice HTTP (es. 409, 422) e il contenuto del messaggio (es. \"content\" o i dettagli dei campi per 422).\n\n\n## Gestione degli Errori del Tool (Output Numerico)\nQuando ricevi un output dai tool che indica un errore (es. un JSON con \"success\": false o un campo error o un codice di stato HTTP), NON generare un messaggio per l'utente. Invece, analizza il contenuto dell'errore e fornisci come output ESATTAMENTE uno dei seguenti numeri, senza testo aggiuntivo:\n\n1: Se il messaggio di errore indica che il paziente non e´stato trovato (cerca parole chiave come \"paziente non incontrato\", \"paciente nao encontrado\", \"pacient not found\").\n\n2: \n\n3: Per qualsiasi altro tipo di messaggio di errore (es. errori di validazione 422, errori di autenticazione 401, risorse non trovate 404, errori del server 5xx, o altri errori generici).",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        720,
+        1184
+      ],
+      "id": "096bcf54-93cc-4b2d-aea9-7a597e0af882",
+      "name": "Analizza errore",
+      "credentials": {
+        "openAiApi": {
+          "id": "B4yJlMETi6y35kM1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e84fe6cb-20e7-47a9-b8dd-2896430fd568",
+              "name": "response",
+              "value": "Per favore, potresti fornirmi un CPF valido? Ricorda che deve essere composto da esattamente 11 cifre.\"",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        192
+      ],
+      "id": "bdc5f342-fc9b-4b97-a3b0-25e02114940a",
+      "name": "Errore formato CPF"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of items) {\n    // =========================================================================\n    // Gestione CPF: Pulizia e Validazione Formato\n    // =========================================================================\n    // <<< MODIFICA QUESTO PERCORSO SE NECESSARIO per il CPF! >>>\n    const rawInputCpf = $input.first().json.query.cpf; \n\n    let cleanCpf = null;\n    let isValidCpfFormat = false;\n\n    if (rawInputCpf) {\n        cleanCpf = String(rawInputCpf).replace(/[^0-9]/g, '');\n        if (cleanCpf.length === 11 && /^\\d+$/.test(cleanCpf)) {\n            isValidCpfFormat = true;\n        }\n    }\n    item.json.cleanCpf = cleanCpf;\n    item.json.isValidCpfFormat = isValidCpfFormat;\n\n    // =========================================================================\n    // Gestione Nome Completo: Capitalizzazione della prima lettera di ogni parola\n    // =========================================================================\n    // <<< MODIFICA QUESTO PERCORSO SE NECESSARIO per il Nome Completo! >>>\n    const rawInputNomeCompleto = $input.first().json.query.nome_completo;\n\n    let formattedNomeCompleto = null;\n\n    if (rawInputNomeCompleto) {\n        const trimmedName = String(rawInputNomeCompleto).trim();\n        formattedNomeCompleto = trimmedName.toLowerCase().split(' ').map(word => {\n            if (word.length === 0) {\n                return ''; \n            }\n            return word.charAt(0).toUpperCase() + word.slice(1);\n        }).join(' ');\n    }\n    item.json.formattedNomeCompleto = formattedNomeCompleto;\n\n    // =========================================================================\n    // Gestione Paciente ID: Verifica che sia un numero (anche 0)\n    // =========================================================================\n    // <<< MODIFICA QUESTO PERCORSO SE NECESSARIO per il Paciente ID! >>>\n    const rawInputPacienteId = $input.first().json.query.paciente_id; \n\n    let cleanPacienteId = null;\n    let isValidPacienteId = false;\n\n    // Verifica se l'input non è nullo o indefinito\n    if (rawInputPacienteId !== null && rawInputPacienteId !== undefined) {\n        // Tenta di convertire in numero\n        const parsedId = Number(rawInputPacienteId);\n\n        // Verifica che sia un numero valido (non NaN) e finito.\n        // Number.isFinite() gestisce sia i numeri che valori come Infinity, -Infinity e NaN.\n        // È importante che sia finito, e sia un numero.\n        if (Number.isFinite(parsedId)) {\n            cleanPacienteId = parsedId; // Salva il valore numerico\n            isValidPacienteId = true;\n        }\n    }\n\n    // Aggiungi i risultati per il Paciente ID all'elemento JSON\n    item.json.cleanPacienteId = cleanPacienteId; // Il Paciente ID pulito (numerico)\n    item.json.isValidPacienteId = isValidPacienteId; // true/false sulla validità del Paciente ID\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        592
+      ],
+      "id": "ef0acc8b-3f3f-4942-8449-056e657382bb",
+      "name": "verifica dati input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e901d5a1-6cf8-4cea-8713-dc4f17481cb7",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        992
+      ],
+      "id": "20885817-147c-45ad-bb6a-1f04e63c9be9",
+      "name": "verifica se paziente e`stato trovato"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1bedc6f1-c34d-49d1-a1f2-f0a6294e577f",
+              "leftValue": "={{ $json.content.nome }}",
+              "rightValue": "={{ $('verifica dati input').item.json.formattedNomeCompleto }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        880
+      ],
+      "id": "40491508-4b33-4f5b-bee6-c7a399c3fba9",
+      "name": "verifica se nomi corrispondono"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "582e1489-675a-4cd0-9bdb-cfcbd6679c82",
+              "name": "response",
+              "value": "=Per favore, potresti fornirmi il tuo CPF? Il sistema indica che il numero ID che mi hai dato è già collegato a un altro profilo, e vorrei assicurarmi di averlo registrato correttamente.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        992
+      ],
+      "id": "2e25944d-3c69-4a09-a936-47b7773be09d",
+      "name": "ID non corrispondente"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ad9da76f-a7d7-4cb0-9150-0847345a80c8",
+              "name": "=response",
+              "value": "=Per favore, potresti controllare e ridigitare il tuo CPF? Il sistema indica che il numero che mi hai dato è già collegato a un altro profilo, e vorrei assicurarmi di averlo registrato correttamente.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        384
+      ],
+      "id": "12551e98-f5b3-4835-b027-4a986ba96401",
+      "name": "CPF non corrispondente"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e901d5a1-6cf8-4cea-8713-dc4f17481cb7",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        384
+      ],
+      "id": "2a40f6de-d3de-462a-97c9-0408a915040e",
+      "name": "verifica se paziente e`stato trovato1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1bedc6f1-c34d-49d1-a1f2-f0a6294e577f",
+              "leftValue": "={{ $json.content.nome }}",
+              "rightValue": "={{ $('verifica dati input').item.json.formattedNomeCompleto }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        288
+      ],
+      "id": "f3c8d109-5ad1-4af7-8c37-7d95cbec4a6d",
+      "name": "verifica se nomi corrispondono1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1bedc6f1-c34d-49d1-a1f2-f0a6294e577f",
+              "leftValue": "={{ $json.error.status }}",
+              "rightValue": "=409",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        1184
+      ],
+      "id": "75ef1374-316f-4c37-864a-f2a7595db0e2",
+      "name": "verifica tipo errore"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1bedc6f1-c34d-49d1-a1f2-f0a6294e577f",
+              "leftValue": "={{ $json.error.status }}",
+              "rightValue": "=409",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        592
+      ],
+      "id": "71d8ee7e-3d18-4718-bd08-55249fd97ba8",
+      "name": "verifica tipo errore1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "582e1489-675a-4cd0-9bdb-cfcbd6679c82",
+              "name": "response",
+              "value": "=Grazie, abbiamo identificato il tuo profilo. Come posso aiutarti oggi in relazione al tuo appuntamento?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        784
+      ],
+      "id": "71868c2a-bb8f-4052-b32c-174006d709ef",
+      "name": "ID trovato"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "582e1489-675a-4cd0-9bdb-cfcbd6679c82",
+              "name": "response",
+              "value": "=Grazie, abbiamo identificato il tuo profilo. Come posso aiutarti oggi in relazione al tuo appuntamento?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        192
+      ],
+      "id": "41c77618-4fa1-48a4-8033-aa39d42b7dac",
+      "name": "ID trovato1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ba7726f8-f7b0-4945-9576-9acaa48bb0fc",
+              "leftValue": "={{ $json.isValidCpfFormat }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        288
+      ],
+      "id": "1abf5a7f-667d-4fee-b42f-ac94221fcf25",
+      "name": "verifica formato"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "verifica dati input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar paciente": {
+      "main": [
+        [
+          {
+            "node": "verifica se paziente e`stato trovato1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "criar paciente": {
+      "main": [
+        [
+          {
+            "node": "Paziente creato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "verifica formato",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "buscar paciente1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar paciente1": {
+      "main": [
+        [
+          {
+            "node": "verifica se paziente e`stato trovato",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Analizza errore1": {
+      "main": [
+        [
+          {
+            "node": "criar paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ID non trovato": {
+      "main": [
+        []
+      ]
+    },
+    "Analizza errore": {
+      "main": [
+        [
+          {
+            "node": "ID non trovato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica dati input": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica se paziente e`stato trovato": {
+      "main": [
+        [
+          {
+            "node": "verifica se nomi corrispondono",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "verifica tipo errore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica se nomi corrispondono": {
+      "main": [
+        [
+          {
+            "node": "ID trovato",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ID non corrispondente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica se paziente e`stato trovato1": {
+      "main": [
+        [
+          {
+            "node": "verifica se nomi corrispondono1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "verifica tipo errore1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica se nomi corrispondono1": {
+      "main": [
+        [
+          {
+            "node": "ID trovato1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CPF non corrispondente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica tipo errore": {
+      "main": [
+        [
+          {
+            "node": "Analizza errore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica tipo errore1": {
+      "main": [
+        [
+          {
+            "node": "Analizza errore1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica formato": {
+      "main": [
+        [
+          {
+            "node": "buscar paciente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Errore formato CPF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "1127e2d5-02b1-49d4-a1b1-5691595bcfc0",
+  "meta": {
+    "instanceId": "540663e0a85878d3bf491b2efc5aa091adf37c0e3f38f1baf860d98ffe0c819b"
+  },
+  "id": "gbaDFsXg7nsVuIN3",
+  "tags": [
+    {
+      "updatedAt": "2025-07-25T18:53:05.781Z",
+      "createdAt": "2025-07-25T18:53:05.781Z",
+      "id": "aYnudHAsvqyruHRH",
+      "name": "clinica"
+    },
+    {
+      "updatedAt": "2025-07-29T17:56:24.598Z",
+      "createdAt": "2025-07-29T17:56:24.598Z",
+      "id": "gLHD3KuD39wgIvq8",
+      "name": "whatsapp"
+    }
+  ]
+}

@@ -1,0 +1,2342 @@
+{
+  "name": "agendamento WHATSAPP versione produzione. V1",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.feegow.com/v1/api/appoints/new-appoint",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\t\"local_id\": {{ $('Valida Input e Configurazione').item.json.applied_defaults.local_id }},\n\t\"paciente_id\": {{ $('Valida Input e Configurazione').item.json.query.paciente_id }},\n\t\"profissional_id\": {{ $('Valida Input e Configurazione').item.json.query.profissional_id }},\n    \"procedimento_id\": {{ $('Valida Input e Configurazione').item.json.query.procedimento_id }},\n\t\"especialidade_id\": {{ $('Valida Input e Configurazione').item.json.applied_defaults.especialidade_id }},\n\t\"data\": \"{{ $('Valida Input e Configurazione').item.json.query.data }}\",\n\t\"horario\": \"{{ $('Valida Input e Configurazione').item.json.query.horario }}\",\n    \"valor\": {{ $('Valida Input e Configurazione').item.json.query.valor }},\n    \"plano\": {{ $('Valida Input e Configurazione').item.json.query.plano }},\n    \"convenio_id\": {{ $json.query.convenio_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        752,
+        -1280
+      ],
+      "id": "5cbb6226-0dbf-4830-9890-a6f4ed426097",
+      "name": "criar agendamento",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.feegow.com/v1/api/appoints/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"agendamento_id\": {{ $('criar agendamento').item.json.content.agendamento_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1248,
+        -1888
+      ],
+      "id": "da8613b8-60c6-4432-9311-911152126248",
+      "name": "listar agendamento",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rootInput = items[0].json;\n\nlet scheduleString = \"Nessuna disponibilità trovata per le date richieste.\"; // Messaggio iniziale più generale\n\n// Verifica che i dati siano presenti e nella struttura attesa\nif (rootInput && rootInput.content && rootInput.content.profissional_id) {\n    const profissionalIdData = rootInput.content.profissional_id['1'];\n    \n    if (profissionalIdData && profissionalIdData.local_id && profissionalIdData.local_id['1']) {\n        const localIdData = profissionalIdData.local_id['1'];\n\n        const dates = Object.keys(localIdData); // Ottieni TUTTE le date disponibili\n\n        if (dates.length > 0) {\n            let allSchedules = []; // Array per accumulare le stringhe di disponibilità per ogni giorno\n\n            // Itera su ogni data trovata\n            for (const date of dates) {\n                const times = localIdData[date];\n\n                if (times && Array.isArray(times) && times.length > 0) {\n                    // Formatta la data da AAAA-MM-GG a GG-MM-AAAA\n                    const formattedDate = date.split('-').reverse().join('-');\n\n                    // Formatta gli orari rimuovendo i secondi (HH:MM:SS -> HH:MM)\n                    const formattedTimes = times.map(time => time.substring(0, 5)).join(', ');\n\n                    allSchedules.push(`Il giorno ${formattedDate} sono disponibili i seguenti orari: ${formattedTimes}.`);\n                } else {\n                    allSchedules.push(`Nessun orario disponibile per il giorno ${date.split('-').reverse().join('-')}.`);\n                }\n            }\n            \n            // Unisci tutte le stringhe di disponibilità dei giorni in un'unica stringa, separate da una nuova riga\n            scheduleString = allSchedules.join('\\n'); \n\n        } else {\n            scheduleString = \"Nessuna data trovata nelle disponibilità fornite.\";\n        }\n    } else {\n        scheduleString = \"Struttura 'local_id' non trovata o vuota nell'input.\";\n    }\n} else {\n    scheduleString = \"Dati di input non validi o struttura 'profissional_id' mancante nell'input.\";\n}\n\nreturn [{ json: { scheduleText: scheduleString } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        -1600
+      ],
+      "id": "95b0bb24-33dd-48f1-9a53-41dcc843e434",
+      "name": "trasforma array orari in stringa"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a076020a-5dc6-4a5f-a9dd-684f86269bf1",
+                    "leftValue": "={{ $json.content.agendamento_id }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Recupera ID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.error.status }}",
+                    "rightValue": 409,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    },
+                    "id": "e4291b83-b1b5-4c49-81de-929460cecad1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Slot occupato"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "04161077-1b84-4f03-810a-3a4372138885",
+                    "leftValue": "={{ $json.error }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Errore"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1072,
+        -1360
+      ],
+      "id": "74ea83ad-bdec-4514-85fb-0373e3051717",
+      "name": "input valido"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "620c3654-ff3a-42ae-a800-1acb7daa6909",
+                    "leftValue": "={{ $json.content[0].agendamento_id }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Recupera ID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d37a5f2d-50ba-48d8-915a-67d79fdd1299",
+                    "leftValue": "={{ $json.content }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "empty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ID prenotazione non trovato"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d7dd72a7-0a68-4d3f-9cca-093c6734b185",
+                    "leftValue": "={{ $json.error }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Errore"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        928,
+        464
+      ],
+      "id": "1265c2db-7055-4dfe-8fac-1ca137aaa3f3",
+      "name": "input valido1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "79b3883c-51c4-4090-a148-cf8a471d2914",
+              "name": "response",
+              "value": "=Grandioso! il tuo appuntamento e`confermato per {{ $json.content[0].data }} alle ore {{ $json.content[0].horario }} col Dr. Francesco.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        -2096
+      ],
+      "id": "b13d67bc-aa4d-4c38-87d0-cf3d81a5938f",
+      "name": "elenca prenotazioni"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22fac089-726c-4b35-b229-9033ca92d207",
+              "name": "response",
+              "value": "=Purtroppo lo slot e`occupato. {{ $json.scheduleText }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2320,
+        -1600
+      ],
+      "id": "4a3f2581-971a-4ba3-97f8-44608f9f986c",
+      "name": "elenca orari disponibili"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "741f1184-434b-46f3-9ba2-56c2d7a0044e",
+              "name": "query.local_id",
+              "value": "={{ $json.query.local_id }}",
+              "type": "string"
+            },
+            {
+              "id": "e4e08b42-b41e-47a2-b853-b11d80bfb453",
+              "name": "query.paciente_id",
+              "value": "={{ $json.query.paciente_id }}",
+              "type": "string"
+            },
+            {
+              "id": "9e9fd0f9-b779-4f6f-9c6e-9de13ebb7b82",
+              "name": "query.profissional_id",
+              "value": "={{ $json.query.profissional_id }}",
+              "type": "number"
+            },
+            {
+              "id": "035f7580-7668-4977-b484-446fb34271b6",
+              "name": "query.procedimento_id",
+              "value": "={{ $json.query.procedimento_id }}",
+              "type": "string"
+            },
+            {
+              "id": "88d971b9-f8a9-4039-a099-8adabb061dd5",
+              "name": "query.data",
+              "value": "={{ $json.query.data }}",
+              "type": "string"
+            },
+            {
+              "id": "062fe825-09ca-4272-9d9a-7888e954c598",
+              "name": "query.horario",
+              "value": "={{ $json.query.horario }}",
+              "type": "string"
+            },
+            {
+              "id": "5e5a425a-6569-41f9-9098-e03fc9b1311d",
+              "name": "query.valor",
+              "value": "={{ $json.query.valor }}",
+              "type": "string"
+            },
+            {
+              "id": "2b1d30c6-e16f-4f57-b273-b608aa5f2c45",
+              "name": "query.plano",
+              "value": "={{ $json.query.plano }}",
+              "type": "string"
+            },
+            {
+              "id": "cc3967e3-c284-4474-a66f-5465b7891b71",
+              "name": "query.tipo",
+              "value": "={{ $json.query.tipo }}",
+              "type": "string"
+            },
+            {
+              "id": "a518a38f-5d8b-4ab5-b5f2-e0e6809ec1ac",
+              "name": "query.unidade_id",
+              "value": "={{ $json.query.unidade_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5fbacfb0-5101-40e4-86c3-c48fc1cdc649",
+              "name": "query.data_start",
+              "value": "={{ $json.query.data_start }}",
+              "type": "string"
+            },
+            {
+              "id": "ff53d7eb-9b3c-46c4-96f4-91ada31a22c9",
+              "name": "query.data_end",
+              "value": "={{ $json.query.data_end }}",
+              "type": "string"
+            },
+            {
+              "id": "8b0c9bf4-087c-4d7f-a38f-f99bb0da5301",
+              "name": "query.convenio_id",
+              "value": "={{ $json.query.convenio_id }}",
+              "type": "string"
+            },
+            {
+              "id": "210180ee-2d12-4f94-b416-2b851aec50b2",
+              "name": "query.agendamento_id",
+              "value": "={{ $json.query.agendamento_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0ff7ba3e-ca2a-461a-a56a-84596d88ccb9",
+              "name": "query.motivo_id",
+              "value": "={{ $json.query.motivo_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5cdae0af-a29c-4c7f-83d9-50054e77b138",
+              "name": "query.obs",
+              "value": "={{ $json.query.obs }}",
+              "type": "string"
+            },
+            {
+              "id": "ffe771fa-1cfd-4fd9-bf79-3c7d14d03efc",
+              "name": "query.nuova_data",
+              "value": "={{ $json.query.nuova_data }}",
+              "type": "string"
+            },
+            {
+              "id": "29573fee-2168-475b-be1f-b334ce5d403d",
+              "name": "query.nuovo_orario",
+              "value": "={{ $json.query.nuovo_orario }}",
+              "type": "string"
+            },
+            {
+              "id": "33c5d6c7-4efc-44ef-a569-a097b1e3935a",
+              "name": "query.evento",
+              "value": "={{ $json.query.evento }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -608,
+        -304
+      ],
+      "id": "8ff35009-506e-4688-99a5-5d4097ea7c2f",
+      "name": "salva variabili"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ba33dc5b-a3b7-4c79-b4a6-4b641cf39c7f",
+                    "leftValue": "={{ $json.query.evento }}",
+                    "rightValue": "inserir",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "criar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bb313633-6b57-4531-97b4-77cc375f0ef5",
+                    "leftValue": "={{ $json.query.evento }}",
+                    "rightValue": "modificare",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reagendar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5498ea51-e2dc-4b3b-9576-a553b846d0ae",
+                    "leftValue": "={{ $json.query.evento }}",
+                    "rightValue": "cancellare",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancelar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4387cc17-0fb0-47b7-8310-c03ca86babc8",
+                    "leftValue": "={{ $json.query.evento }}",
+                    "rightValue": "verificare",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "listare"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        288,
+        -304
+      ],
+      "id": "34eb7d35-5ac3-4f7b-b894-22c5dc5e0d9e",
+      "name": "verifica intento"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        -304
+      ],
+      "id": "115fa84b-f861-4e97-abd3-f96ed7cf1dc9",
+      "name": "ricevi JSON da agente"
+    },
+    {
+      "parameters": {
+        "url": "https://api.feegow.com/v1/api/appoints/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"agendamento_id\":{{ $('Valida Input e Configurazione').item.json.query.agendamento_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        448
+      ],
+      "id": "cd386900-7af9-46b7-9b5f-176b9d7ddb8f",
+      "name": "listar agendamento1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.feegow.com/v1/api/appoints/cancel-appoint",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\t\"agendamento_id\": {{ $json.content[0].agendamento_id }},\n\t\"motivo_id\": {{ $('Valida Input e Configurazione').item.json.query.motivo_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        272
+      ],
+      "id": "e7efb85a-5fbc-412d-8298-e83c2d81e0ca",
+      "name": "cancella appuntamento",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "495a056f-4f5c-4e10-a7fe-9ccb8a22784e",
+              "name": "response",
+              "value": "=il tuo appuntamento del {{ $('listar agendamento1').item.json.content[0].data }} alle ore {{ $('listar agendamento1').item.json.content[0].horario }} e´stato cancellato.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1424,
+        272
+      ],
+      "id": "886c570b-ac6c-4c5c-a5b8-07e8950e55b1",
+      "name": "conferma cancellazione "
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22f9b479-a281-4103-a5af-85440f733ab7",
+              "name": "response",
+              "value": "\"Gentile Cliente, a causa di un'elevata richiesta di accesso ai nostri servizi, potrebbe riscontrare dei rallentamenti o l'impossibilità di completare l'operazione in questo momento.  La invitiamo a riprovare tra qualche m",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1248,
+        672
+      ],
+      "id": "47db24a3-40e2-4cbd-bbdd-902d3a479b94",
+      "name": "dettaglio altro errore1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9a3383a0-b9c8-421b-adf1-3f69bc68aaa4",
+                    "leftValue": "={{ $json.content[0].agendamento_id }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Recupera ID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d37a5f2d-50ba-48d8-915a-67d79fdd1299",
+                    "leftValue": "={{ $json.error }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Errore"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1440,
+        -1936
+      ],
+      "id": "7b3925a8-6aec-4a61-9435-ebc4737d984f",
+      "name": "input valido2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22f9b479-a281-4103-a5af-85440f733ab7",
+              "name": "response",
+              "value": "\"Gentile Cliente, a causa di un'elevata richiesta di accesso ai nostri servizi, potrebbe riscontrare dei rallentamenti o l'impossibilità di completare l'operazione in questo momento.  La invitiamo a riprovare tra qualche m",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        -1920
+      ],
+      "id": "9650276a-19ec-4cee-9a7c-23526c6f91fb",
+      "name": "dettaglio altro errore2"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.feegow.com/v1/api/appoints/available-schedule",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"tipo\": \"{{ $('Valida Input e Configurazione').item.json.query.tipo }}\",\n    \"unidade_id\": {{ $('Valida Input e Configurazione').item.json.query.unidade_id }},\n    \"data_start\": \"{{ $('Valida Input e Configurazione').item.json.query.data }}\",\n    \"data_end\": \"{{ $('Valida Input e Configurazione').item.json.query.data }}\",\n    \"profissional_id\": {{ $('Valida Input e Configurazione').item.json.query.profissional_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1968,
+        -1600
+      ],
+      "id": "800ee8c5-49e9-4577-895d-8ade3484c9b1",
+      "name": "disponibilita orari1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### In questa fase riceviamo il JSON, settiamo variabile \n### dinamiche e definiamo intento.",
+        "height": 260,
+        "width": 1020,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        -384
+      ],
+      "id": "6e6679a9-0c20-4a79-a1ff-3ea4cb9741e1",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "### Definito intento di creare appuntamento\n### Proviamo a creare l'evento e analizziamo l'output.",
+        "height": 360,
+        "width": 720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1184,
+        -1488
+      ],
+      "id": "2fd9bbe1-51d1-4e2e-bba7-ab06e5294765",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "### L'output restituisce un errore 409 quindi slot occupato (!!!)\n### Procediamo a verificare disponibilità orari stesso giorno.",
+        "height": 260,
+        "width": 980
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        -2000
+      ],
+      "id": "0b867e4c-0367-4088-ac2f-a795e8ad6ab1",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.feegow.com/v1/api/appoints/available-schedule",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"tipo\": \"{{ $('Valida Input e Configurazione').item.json.query.tipo }}\",\n    \"unidade_id\": {{ $('Valida Input e Configurazione').item.json.query.unidade_id }},\n    \"data_start\": \"{{ $('Valida Input e Configurazione').item.json.query.nuova_data }}\",\n    \"data_end\": \"{{ $('Valida Input e Configurazione').item.json.query.nuova_data }}\",\n    \"profissional_id\": {{ $('Valida Input e Configurazione').item.json.query.profissional_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2368,
+        -848
+      ],
+      "id": "8d7f08ca-a26a-4087-aac1-af2d1c63d038",
+      "name": "disponibilita orari",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.feegow.com/v1/api/appoints/reschedule",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\t\"agendamento_id\": {{ $('Valida Input e Configurazione').item.json.query.agendamento_id }},\n\t\"motivo_id\": {{ $('Valida Input e Configurazione').item.json.applied_defaults.motivo_id }},\n\t\"data\": \"{{ $('Valida Input e Configurazione').item.json.query.nuova_data }}\",\n\t\"horario\": \"{{ $('Valida Input e Configurazione').item.json.query.nuovo_orario }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        -640
+      ],
+      "id": "bb8d9060-5e93-4674-9801-6b902b080304",
+      "name": "reagenda",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.feegow.com/v1/api/appoints/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"agendamento_id\":{{ $('Valida Input e Configurazione').item.json.query.agendamento_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        -304
+      ],
+      "id": "5382559a-d719-49e9-b3a4-983bad6b4506",
+      "name": "listar agendamento2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a076020a-5dc6-4a5f-a9dd-684f86269bf1",
+                    "leftValue": "={{ $json.content[0].agendamento_id }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Recupera ID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.error }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "e4291b83-b1b5-4c49-81de-929460cecad1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Errore, ID non recuperato"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        928,
+        -368
+      ],
+      "id": "b8e5571e-d27b-48c7-ae6a-0b4cf317e8cc",
+      "name": "input valido3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "79b3883c-51c4-4090-a148-cf8a471d2914",
+              "name": "response",
+              "value": "=Appuntamento riprogrammato.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        -960
+      ],
+      "id": "a38bdfa2-64e8-4aec-844c-64810fd790e6",
+      "name": "Conferma riprogrammazione appuntamento"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5714c673-398d-48f0-b3f9-937fe39e7dcb",
+              "name": "response",
+              "value": "Non sono riuscito a recuperare le informazioni della tua prenotazione per procedere con la modifica. Verifica di aver inserito la data e l'ora corretta.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        -336
+      ],
+      "id": "5935ed4f-25b4-4d8a-99e4-deee7a6073c5",
+      "name": "ID non recuperato"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a076020a-5dc6-4a5f-a9dd-684f86269bf1",
+                    "leftValue": "={{ $json.success }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "conferma"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.error.status }}",
+                    "rightValue": 409,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    },
+                    "id": "e4291b83-b1b5-4c49-81de-929460cecad1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Slot occupato"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "52070554-cfc1-4f75-9d81-b95825f19fb6",
+                    "leftValue": "={{ $json.error.status }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Altro errore"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1360,
+        -704
+      ],
+      "id": "df5eadf8-29d0-435b-bcb3-64adbec85eb5",
+      "name": "input valido4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rootInput = items[0].json;\n\nlet scheduleString = \"Nessuna disponibilità trovata per le date richieste.\"; // Messaggio iniziale più generale\n\n// Verifica che i dati siano presenti e nella struttura attesa\nif (rootInput && rootInput.content && rootInput.content.profissional_id) {\n    const profissionalIdData = rootInput.content.profissional_id['1'];\n    \n    if (profissionalIdData && profissionalIdData.local_id && profissionalIdData.local_id['1']) {\n        const localIdData = profissionalIdData.local_id['1'];\n\n        const dates = Object.keys(localIdData); // Ottieni TUTTE le date disponibili\n\n        if (dates.length > 0) {\n            let allSchedules = []; // Array per accumulare le stringhe di disponibilità per ogni giorno\n\n            // Itera su ogni data trovata\n            for (const date of dates) {\n                const times = localIdData[date];\n\n                if (times && Array.isArray(times) && times.length > 0) {\n                    // Formatta la data da AAAA-MM-GG a GG-MM-AAAA\n                    const formattedDate = date.split('-').reverse().join('-');\n\n                    // Formatta gli orari rimuovendo i secondi (HH:MM:SS -> HH:MM)\n                    const formattedTimes = times.map(time => time.substring(0, 5)).join(', ');\n\n                    allSchedules.push(`Il giorno ${formattedDate} sono disponibili i seguenti orari: ${formattedTimes}.`);\n                } else {\n                    allSchedules.push(`Nessun orario disponibile per il giorno ${date.split('-').reverse().join('-')}.`);\n                }\n            }\n            \n            // Unisci tutte le stringhe di disponibilità dei giorni in un'unica stringa, separate da una nuova riga\n            scheduleString = allSchedules.join('\\n'); \n\n        } else {\n            scheduleString = \"Nessuna data trovata nelle disponibilità fornite.\";\n        }\n    } else {\n        scheduleString = \"Struttura 'local_id' non trovata o vuota nell'input.\";\n    }\n} else {\n    scheduleString = \"Dati di input non validi o struttura 'profissional_id' mancante nell'input.\";\n}\n\nreturn [{ json: { scheduleText: scheduleString } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2528,
+        -848
+      ],
+      "id": "16db2d37-9e91-421b-a0ff-fc178b4dad33",
+      "name": "trasforma array orari in stringa1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22fac089-726c-4b35-b229-9033ca92d207",
+              "name": "response",
+              "value": "=Purtroppo lo slot e`occupato. {{ $json.scheduleText }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2688,
+        -848
+      ],
+      "id": "03e53a6d-f2b8-4621-a9b9-e6396b0654e3",
+      "name": "elenca orari disponibili1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22f9b479-a281-4103-a5af-85440f733ab7",
+              "name": "response",
+              "value": "\"Gentile Cliente, a causa di un'elevata richiesta di accesso ai nostri servizi, potrebbe riscontrare dei rallentamenti o l'impossibilità di completare l'operazione in questo momento.  La invitiamo a riprovare tra qualche m",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        -544
+      ],
+      "id": "b345c125-754d-492e-97a5-0e89fbb2430e",
+      "name": "dettaglio altro errore4"
+    },
+    {
+      "parameters": {
+        "url": "https://api.feegow.com/v1/api/appoints/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"profissional_id\": {{ $('Valida Input e Configurazione').item.json.query.profissional_id }},\n    \"paciente_id\": {{ $('Valida Input e Configurazione').item.json.query.paciente_id }},\n    \"data_start\": \"{{ $('Valida Input e Configurazione').item.json.query.data_start }}\",\n    \"data_end\": \"{{ $('Valida Input e Configurazione').item.json.query.data_end }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -864,
+        208
+      ],
+      "id": "13488081-d998-42a1-b034-ce2806716c88",
+      "name": "listar agendamento3",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IwypumnOOikQhNLe",
+          "name": "Feegow"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a076020a-5dc6-4a5f-a9dd-684f86269bf1",
+                    "leftValue": "={{ $json.content }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Recupera ID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "966461b4-4c44-464c-a328-324aa25c2db1",
+                    "leftValue": "={{ $json.error }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Errore"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -656,
+        208
+      ],
+      "id": "f3f7a6c0-b18d-40c5-8f51-cee1e7a94d83",
+      "name": "input valido5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = items[0].json;\n\nlet appointmentsString = \"Nessun appuntamento trovato per il periodo richiesto.\"; // Messaggio di default\n\n// Controlla se l'input ha successo e contiene dati\nif (inputData && inputData.success && Array.isArray(inputData.content) && inputData.content.length > 0) {\n    let appointmentDetails = [];\n\n    // Itera su ogni elemento (appuntamento) all'interno dell'array 'content'\n    for (const appointment of inputData.content) {\n        // Estrai e formatta i dettagli\n        const id = appointment.agendamento_id;\n        const data = appointment.data; // La data è già nel formato desiderato\n        const ora = appointment.horario.substring(0, 5); // Estrae HH:MM\n\n        appointmentDetails.push(`ID appuntamento: ${id}, Data: ${data}, Ora: ${ora}`);\n    }\n    \n    // Unisci tutti i dettagli degli appuntamenti in una stringa, separati da un punto e spazio\n    appointmentsString = \"Ecco i tuoi appuntamenti: \" + appointmentDetails.join(\". \") + \".\";\n}\n\n// Restituisce la stringa finale\nreturn [{ json: { appointmentsSummary: appointmentsString } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        144
+      ],
+      "id": "b2aa2b2d-868a-49b6-aaf8-73f7bb5f49e2",
+      "name": "Trasforma array in stringa"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a78439de-e821-46db-a2f6-2c8a9cb85dc2",
+              "name": "response",
+              "value": "={{ $json.appointmentsSummary }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        128
+      ],
+      "id": "a68992b2-7ac5-4e1f-afb3-8bb69859bd26",
+      "name": "Elenca appuntamenti prenotati"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22f9b479-a281-4103-a5af-85440f733ab7",
+              "name": "response",
+              "value": "\"Gentile Cliente, a causa di un'elevata richiesta di accesso ai nostri servizi, potrebbe riscontrare dei rallentamenti o l'impossibilità di completare l'operazione in questo momento.  La invitiamo a riprovare tra qualche m",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -448,
+        320
+      ],
+      "id": "da5ec792-3151-4a1e-a9e3-f280c7e52cfa",
+      "name": "dettaglio altro errore5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================================\n// NODO: Valida Input e Configurazione\n// Posizione: Dopo \"salva variabili\", Prima di \"verifica intento\"\n// ============================================================================\n\nconst input = items[0].json.query;\nconst errors = [];\nconst warnings = [];\n\n// ============================================================================\n// CONFIGURAZIONE CENTRALIZZATA\n// ============================================================================\nconst CONFIG = {\n    // Valori di default (in produzione verranno da variabili ambiente)\n    especialidade_id: 96,\n    motivo_cancellazione_default: 1,\n    tipo_ricerca_default: \"P\",\n    unidade_id_default: \"1\",\n    \n    // Pattern di validazione\n    patterns: {\n        date: /^\\d{2}-\\d{2}-\\d{4}$/,\n        time: /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/,\n        number: /^\\d+$/,\n        // Pattern per caratteri consentiti nelle stringhe (es. lettere, numeri, spazi, alcuni simboli comuni)\n        // Ad esempio, solo lettere, numeri, spazi e alcuni segni di punteggiatura\n        safeString: /^[a-zA-Z0-9\\s.,'()-]*$/\n    },\n    \n    // Eventi validi\n    valid_events: ['inserir', 'modificare', 'cancellare', 'verificare'],\n    \n    // Campi obbligatori per evento\n    required_fields: {\n        'inserir': ['paciente_id', 'profissional_id', 'data', 'horario', 'procedimento_id'],\n        'modificare': ['paciente_id', 'profissional_id', 'agendamento_id', 'nuova_data', 'nuovo_orario'],\n        'cancellare': ['paciente_id', 'profissional_id', 'agendamento_id'],\n        'verificare': ['paciente_id', 'profissional_id', 'data_start', 'data_end']\n    },\n\n    // Orari di apertura per la validazione fine\n    clinic_hours: {\n        morning: { start: { hours: 10, minutes: 0 }, end: { hours: 13, minutes: 0 } },\n        afternoon: { start: { hours: 15, minutes: 0 }, end: { hours: 18, minutes: 0 } },\n        appointment_duration_minutes: 30 // Durata standard di una visita\n    },\n\n    // --- NUOVA CONFIGURAZIONE: Giorni festivi / Chiusure speciali ---\n    // Le date devono essere in formato 'DD-MM-YYYY'\n    holidays: [\n    \"01-01-2025\", // Capodanno - Quarta-feira (Mercoledì)\n    \"03-03-2025\", // Carnevale - Lunedì\n    \"04-03-2025\", // Carnevale - Martedì\n    \"05-03-2025\", // Mercoledì delle Ceneri (fino a mezzogiorno, ma spesso giorno intero di chiusura per le aziende)\n    \"18-04-2025\", // Venerdì Santo - Sexta-feira\n    \"21-04-2025\", // Tiradentes - Segunda-feira (Lunedì)\n    \"01-05-2025\", // Festa del Lavoro - Quinta-feira (Giovedì)\n    \"19-06-2025\", // Corpus Christi - Quinta-feira (Giovedì)\n    \"07-09-2025\", // Giorno dell'Indipendenza - Domingo (Domenica)\n    \"12-10-2025\", // Nossa Senhora Aparecida - Domingo (Domenica)\n    \"02-11-2025\", // Giorno dei Morti - Domingo (Domenica)\n    \"15-11-2025\", // Proclamazione della Repubblica - Sábado (Sabato)\n    \"25-12-2025\", // Natale - Quinta-feira (Giovedì)\n\n    // Chiusura della clinica per ferie a Dicembre 2025\n    \"01-12-2025\", // Inizio ferie\n    \"02-12-2025\",\n    \"03-12-2025\",\n    \"04-12-2025\",\n    \"08-12-2025\",\n    \"09-12-2025\",\n    \"10-12-2025\",\n    \"11-12-2025\",\n    \"15-12-2025\",\n    \"16-12-2025\",\n    \"17-12-2025\",\n    \"18-12-2025\",\n    \"22-12-2025\",\n    \"23-12-2025\",\n    \"24-12-2025\",\n    \"26-12-2025\",\n    \"29-12-2025\",\n    \"30-12-2025\",\n    \"31-12-2025\" // Fine ferie / Vigilia di Capodanno\n],\n    // --- FINE NUOVA CONFIGURAZIONE ---\n\n    // --- NUOVA CONFIGURAZIONE: Limiti lunghezza stringhe ---\n    string_length_limits: {\n        obs: { max: 255 }, // Esempio: massimo 255 caratteri per le osservazioni\n        nome_completo: { max: 100 } // Esempio: massimo 100 caratteri per il nome completo\n    }\n    // --- FINE NUOVA CONFIGURAZIONE ---\n};\n\n// ============================================================================\n// FUNZIONI DI VALIDAZIONE\n// ============================================================================\n\n// Valida formato data DD-MM-YYYY\nfunction validateDate(dateStr, fieldName, isAppointmentDate = false) {\n    if (!dateStr) return true;\n    \n    if (!CONFIG.patterns.date.test(dateStr)) {\n        errors.push(`${fieldName}: formato non valido '${dateStr}'. Usare DD-MM-YYYY (es: 15-08-2025)`);\n        return false;\n    }\n    \n    const [day, month, year] = dateStr.split('-').map(Number);\n    const date = new Date(year, month - 1, day);\n\n    if (date.getDate() !== day || date.getMonth() !== month - 1 || date.getFullYear() !== year) {\n        errors.push(`${fieldName}: data non valida o inesistente '${dateStr}'`);\n        return false;\n    }\n    \n    if (isAppointmentDate && (input.evento === 'inserir' || (input.evento === 'modificare' && fieldName === 'nuova_data'))) {\n        const today = new Date();\n        today.setHours(0, 0, 0, 0);\n        if (date < today) {\n            errors.push(`${fieldName}: non è possibile prenotare nel passato '${dateStr}'`);\n            return false;\n        }\n    }\n    \n    const dayOfWeek = date.getDay();\n    if (isAppointmentDate && (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6)) {\n        errors.push(`${fieldName}: la clinica è chiusa il Venerdì, Sabato e Domenica. La data selezionata (${dateStr}) cade in un giorno di chiusura.`);\n        return false;\n    }\n\n    // --- NUOVA VALIDAZIONE: Giorni festivi / Chiusure speciali ---\n    if (isAppointmentDate) {\n        if (CONFIG.holidays.includes(dateStr)) {\n            errors.push(`${fieldName}: la clinica è chiusa in questa data festiva o per chiusura speciale (${dateStr}).`);\n            return false;\n        }\n    }\n    // --- FINE NUOVA VALIDAZIONE ---\n\n    return true;\n}\n\n// Valida formato orario HH:MM o HH:MM:SS\nfunction validateTime(timeStr, fieldName) {\n    if (!timeStr) return true;\n    \n    if (!CONFIG.patterns.time.test(timeStr)) {\n        errors.push(`${fieldName}: formato non valido '${timeStr}'. Usare HH:MM o HH:MM:SS (es: 14:30)`);\n        return false;\n    }\n    \n    return true;\n}\n\n// Valida l'orario di un appuntamento rispetto agli orari di apertura e slot della clinica\nfunction validateAppointmentTime(timeStr, fieldName) {\n    if (!timeStr) return true;\n    \n    const [hours, minutes] = timeStr.split(':').map(Number);\n    const totalMinutes = hours * 60 + minutes;\n\n    const morningStartMinutes = CONFIG.clinic_hours.morning.start.hours * 60 + CONFIG.clinic_hours.morning.start.minutes;\n    const morningEndMinutes = CONFIG.clinic_hours.morning.end.hours * 60 + CONFIG.clinic_hours.morning.end.minutes;\n    const afternoonStartMinutes = CONFIG.clinic_hours.afternoon.start.hours * 60 + CONFIG.clinic_hours.afternoon.start.minutes;\n    const afternoonEndMinutes = CONFIG.clinic_hours.afternoon.end.hours * 60 + CONFIG.clinic_hours.afternoon.end.minutes;\n\n    const appointmentDuration = CONFIG.clinic_hours.appointment_duration_minutes;\n\n    const isInMorningBlock = (totalMinutes >= morningStartMinutes && totalMinutes < morningEndMinutes);\n    const isInAfternoonBlock = (totalMinutes >= afternoonStartMinutes && totalMinutes < afternoonEndMinutes);\n\n    if (!isInMorningBlock && !isInAfternoonBlock) {\n        errors.push(`${fieldName}: L'orario selezionato '${timeStr}' non rientra nelle fasce orarie di apertura della clinica (10:00-13:00 e 15:00-18:00).`);\n        return false;\n    }\n\n    if (totalMinutes % appointmentDuration !== 0) {\n        errors.push(`${fieldName}: L'orario selezionato '${timeStr}' non è uno slot di appuntamento valido. Gli appuntamenti devono iniziare ogni ${appointmentDuration} minuti.`);\n        return false;\n    }\n\n    // Controllo per l'ultimo slot (l'appuntamento deve poter finire entro l'orario di chiusura)\n    // Se l'orario richiesto è l'ultimo slot (es. 12:30 o 17:30) va bene.\n    // Se è dopo (es. 12:45), significa che l'appuntamento finirebbe dopo la chiusura.\n    const lastMorningSlotEndMinutes = (12 * 60 + 30) + appointmentDuration; // 13:00\n    const lastAfternoonSlotEndMinutes = (17 * 60 + 30) + appointmentDuration; // 18:00\n\n    if (isInMorningBlock && (totalMinutes + appointmentDuration > lastMorningSlotEndMinutes)) {\n        errors.push(`${fieldName}: L'orario selezionato '${timeStr}' non permette di completare la visita entro l'orario di chiusura mattutino.`);\n        return false;\n    }\n    if (isInAfternoonBlock && (totalMinutes + appointmentDuration > lastAfternoonSlotEndMinutes)) {\n        errors.push(`${fieldName}: L'orario selezionato '${timeStr}' non permette di completare la visita entro l'orario di chiusura pomeridiano.`);\n        return false;\n    }\n\n    return true;\n}\n\n// Valida che sia un numero\nfunction validateNumber(value, fieldName) {\n    if (value === undefined || value === null || value === '') return true;\n    \n    if (!CONFIG.patterns.number.test(value.toString())) {\n        errors.push(`${fieldName}: deve essere un numero valido '${value}'`);\n        return false;\n    }\n    \n    return true;\n}\n\n// --- NUOVA FUNZIONE: Valida lunghezza stringa ---\nfunction validateStringLength(value, fieldName, maxLength) {\n    if (!value) return true;\n    if (value.length > maxLength) {\n        errors.push(`${fieldName}: lunghezza massima ${maxLength} caratteri superata (${value.length}).`);\n        return false;\n    }\n    return true;\n}\n\n// --- NUOVA FUNZIONE: Valida caratteri stringa ---\nfunction validateStringCharacters(value, fieldName) {\n    if (!value) return true;\n    if (!CONFIG.patterns.safeString.test(value)) {\n        errors.push(`${fieldName}: contiene caratteri non validi.`);\n        return false;\n    }\n    return true;\n}\n// --- FINE NUOVE FUNZIONI ---\n\n// Valida campi obbligatori per evento\nfunction validateRequiredFields(evento, data) {\n    const required = CONFIG.required_fields[evento] || [];\n    \n    required.forEach(field => {\n        if (!data[field] || data[field].toString().trim() === '') {\n            errors.push(`Campo obbligatorio mancante per '${evento}': ${field}`);\n        }\n    });\n}\n\n// ============================================================================\n// ESECUZIONE VALIDAZIONI\n// ============================================================================\n\nconsole.log(`[VALIDATION_START] Evento: ${input.evento}, Paziente: ${input.paciente_id}`);\n\n// 1. Validazione evento\nif (!input.evento) {\n    errors.push(\"Campo 'evento' è obbligatorio\");\n} else if (!CONFIG.valid_events.includes(input.evento)) {\n    errors.push(`Evento non valido: '${input.evento}'. Valori ammessi: ${CONFIG.valid_events.join(', ')}`);\n}\n\n// 2. Validazione campi obbligatori\nif (input.evento && CONFIG.valid_events.includes(input.evento)) {\n    validateRequiredFields(input.evento, input);\n}\n\n// 3. Validazione date (e giorni della settimana se data di appuntamento)\nvalidateDate(input.data, 'data', true);\nvalidateDate(input.nuova_data, 'nuova_data', true);\nvalidateDate(input.data_start, 'data_start', false);\nvalidateDate(input.data_end, 'data_end', false);\n\n// 4. Validazione orari (formato)\nvalidateTime(input.horario, 'horario');\nvalidateTime(input.nuovo_orario, 'nuovo_orario');\n\n// 5. Validazione numeri (campi sempre numerici se presenti)\nvalidateNumber(input.paciente_id, 'paciente_id');\nvalidateNumber(input.profissional_id, 'profissional_id');\nvalidateNumber(input.procedimento_id, 'procedimento_id');\nvalidateNumber(input.valor, 'valor');\n\n// --- NUOVE CHIAMATE VALIDAZIONE: Stringhe ---\nif (input.obs) {\n    validateStringLength(input.obs, 'obs', CONFIG.string_length_limits.obs.max);\n    validateStringCharacters(input.obs, 'obs');\n}\nif (input.nome_completo) { // Se nome_completo è un campo di input che viene validato qui\n    validateStringLength(input.nome_completo, 'nome_completo', CONFIG.string_length_limits.nome_completo.max);\n    validateStringCharacters(input.nome_completo, 'nome_completo');\n}\n// --- FINE NUOVE CHIAMATE VALIDAZIONE ---\n\n// 6. Validazioni specifiche per evento\nswitch (input.evento) {\n    case 'inserir':\n        if (!input.local_id) {\n            warnings.push(\"local_id non specificato, verrà usato valore di default\");\n        }\n        if (input.valor === undefined || parseFloat(input.valor) <= 0) {\n            warnings.push(\"Valore appuntamento non specificato o non valido\");\n        }\n        validateAppointmentTime(input.horario, 'horario');\n        break;\n        \n    case 'modificare':\n        validateNumber(input.agendamento_id, 'agendamento_id');\n        if (!input.motivo_id) {\n            warnings.push(\"motivo_id non specificato, verrà usato valore di default\");\n        }\n        validateAppointmentTime(input.nuovo_orario, 'nuovo_orario');\n        break;\n        \n    case 'cancellare':\n        validateNumber(input.agendamento_id, 'agendamento_id');\n        break;\n        \n    case 'verificare':\n        if (input.data_start && input.data_end) {\n            const [dayS, monthS, yearS] = input.data_start.split('-').map(Number);\n            const [dayE, monthE, yearE] = input.data_end.split('-').map(Number);\n            const dateStart = new Date(yearS, monthS - 1, dayS);\n            const dateEnd = new Date(yearE, monthE - 1, dayE);\n            \n            if (dateEnd < dateStart) {\n                errors.push(\"data_end deve essere successiva a data_start\");\n            }\n        }\n        break;\n}\n\n// ============================================================================\n// RISULTATO VALIDAZIONE\n// ============================================================================\n\nif (errors.length > 0) {\n    console.log(`[VALIDATION_FAILED] Errori: ${errors.length}, Warnings: ${warnings.length}`);\n    console.log(`[VALIDATION_ERRORS]`, errors);\n    \n    return [{\n        json: {\n            validation_status: 'FAILED',\n            errors: errors,\n            warnings: warnings,\n            response: `Errore di validazione dei dati: ${errors.join('. ')}`\n        }\n    }];\n}\n\n// Applica valori di default per campi mancanti\nconst enrichedInput = {\n    ...input,\n    // Valori di default\n    local_id: input.local_id || CONFIG.unidade_id_default,\n    especialidade_id: CONFIG.especialidade_id,\n    motivo_id: input.motivo_id || CONFIG.motivo_cancellazione_default,\n    tipo: \"P\",\n    unidade_id: input.unidade_id || CONFIG.unidade_id_default,\n    plano: input.plano || \"0\"\n};\n\nconsole.log(`[VALIDATION_SUCCESS] Input validato con successo`);\nif (warnings.length > 0) {\n    console.log(`[VALIDATION_WARNINGS]`, warnings);\n}\n\nreturn [{\n    json: {\n        validation_status: 'SUCCESS',\n        query: enrichedInput,\n        warnings: warnings,\n        applied_defaults: {\n            local_id: enrichedInput.local_id,\n            especialidade_id: enrichedInput.especialidade_id,\n            motivo_id: enrichedInput.motivo_id,\n            tipo: enrichedInput.tipo,\n            unidade_id: enrichedInput.unidade_id\n        }\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -304
+      ],
+      "id": "e40cd122-7d53-41e6-b9e5-343085aa314d",
+      "name": "Valida Input e Configurazione"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.validation_status }}",
+                    "rightValue": "SUCCESS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "0b3b3fb4-7a19-45fb-86fa-93b2c9d54156"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "continua"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5a7eda67-d819-446f-b62b-e7768380338d",
+                    "leftValue": "={{ $json.validation_status }}",
+                    "rightValue": "FAILED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Errore"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -176,
+        -304
+      ],
+      "id": "57a598bd-329d-48c8-802b-657f00896197",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "485292f6-7b4c-497d-a03a-736cddc99741",
+              "name": "response",
+              "value": "={{ $json.errors[0] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        -176
+      ],
+      "id": "c912e34a-2ace-48ac-bf8d-0277bd57d149",
+      "name": "Input invalidi"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.content }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    },
+                    "id": "73d0a13b-5b63-419a-a83d-f98123e7da6e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Slot occupato"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "336ca20e-e4ff-4d98-8fdf-0d7aa027a7d9",
+                    "leftValue": "={{ $json.message.content }}",
+                    "rightValue": 2,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gia possiede appuntamento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "74cb5097-ae8d-4ff5-9260-b1b8499f5b7d",
+                    "leftValue": "={{ $json.message.content }}",
+                    "rightValue": 3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "altro problema"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1552,
+        -1488
+      ],
+      "id": "56f8eaa7-f366-4b9e-8c9c-6585beb6aee1",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "468b1ca8-2ee7-46e8-964d-0e9a86b1cbc4",
+              "name": "response",
+              "value": "Hai gia un appuntamento programmato per la data scelta.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        -1456
+      ],
+      "id": "4d9ebbac-e415-4762-9f1d-a98a77493f38",
+      "name": "Ha gia appuntamento"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "468b1ca8-2ee7-46e8-964d-0e9a86b1cbc4",
+              "name": "response",
+              "value": "\"Gentile Cliente, a causa di un'elevata richiesta di accesso ai nostri servizi, potrebbe riscontrare dei rallentamenti o l'impossibilità di completare l'operazione in questo momento.  La invitiamo a riprovare tra qualche m",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        -1328
+      ],
+      "id": "36ee15a7-5e74-43af-b828-00f15235a3f2",
+      "name": "altro errore"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "468b1ca8-2ee7-46e8-964d-0e9a86b1cbc4",
+              "name": "response",
+              "value": "Hai gia un appuntamento programmato per la data scelta.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2368,
+        -688
+      ],
+      "id": "cbafc2da-e90d-4814-950b-7a3d59ec9895",
+      "name": "Ha gia appuntamento1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "468b1ca8-2ee7-46e8-964d-0e9a86b1cbc4",
+              "name": "response",
+              "value": "\"Gentile Cliente, a causa di un'elevata richiesta di accesso ai nostri servizi, potrebbe riscontrare dei rallentamenti o l'impossibilità di completare l'operazione in questo momento.  La invitiamo a riprovare tra qualche m",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2368,
+        -544
+      ],
+      "id": "5f2b5b07-8806-4e9d-8043-e8a72dc5e9ad",
+      "name": "altro errore1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.content }}",
+                    "rightValue": "1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "73d0a13b-5b63-419a-a83d-f98123e7da6e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Slot occupato"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "336ca20e-e4ff-4d98-8fdf-0d7aa027a7d9",
+                    "leftValue": "={{ $json.message.content }}",
+                    "rightValue": "2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gia possiede appuntamento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "74cb5097-ae8d-4ff5-9260-b1b8499f5b7d",
+                    "leftValue": "={{ $json.message.content }}",
+                    "rightValue": "3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "altro problema"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2064,
+        -704
+      ],
+      "id": "5b677a69-9150-4ab4-b7c9-830bc5d0d1bb",
+      "name": "tipo errore"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.error.message }}\n"
+            },
+            {
+              "content": "=Ricevi un messaggio di errore JSON o una sua parte.\n\nIdentifica il codice HTTP (es. 409, 422) e il contenuto del messaggio (es. \"content\" o i dettagli dei campi per 422).\n\n\n## Gestione degli Errori del Tool (Output Numerico)\nQuando ricevi un output dai tool che indica un errore (es. un JSON con \"success\": false o un campo error o un codice di stato HTTP), NON generare un messaggio per l'utente. Invece, analizza il contenuto dell'errore e fornisci come output ESATTAMENTE uno dei seguenti numeri, senza testo aggiuntivo:\n\n1: Se il messaggio di errore indica che lo slot orario selezionato è già occupato (cerca parole chiave come \"slot occupato\", \"horário ocupado\", \"time slot unavailable\").\n\n2: Se il messaggio di errore indica che il paziente ha già un appuntamento (cerca parole chiave come \"già un appuntamento\", \"já possui um agendamento\", \"already has an appointment\").\n\n3: Per qualsiasi altro tipo di messaggio di errore (es. errori di validazione 422, errori di autenticazione 401, risorse non trovate 404, errori del server 5xx, o altri errori generici).",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1744,
+        -704
+      ],
+      "id": "2b946305-e565-4e59-b127-b299413f83af",
+      "name": "Analizza errore",
+      "credentials": {
+        "openAiApi": {
+          "id": "B4yJlMETi6y35kM1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.error.message }}\n"
+            },
+            {
+              "content": "=Ricevi un messaggio di errore JSON o una sua parte.\n\nIdentifica il codice HTTP (es. 409, 422) e il contenuto del messaggio (es. \"content\" o i dettagli dei campi per 422).\n\n\n## Gestione degli Errori del Tool (Output Numerico)\nQuando ricevi un output dai tool che indica un errore (es. un JSON con \"success\": false o un campo error o un codice di stato HTTP), NON generare un messaggio per l'utente. Invece, analizza il contenuto dell'errore e fornisci come output ESATTAMENTE uno dei seguenti numeri, senza testo aggiuntivo:\n\n1: Se il messaggio di errore indica che lo slot orario selezionato è già occupato (cerca parole chiave come \"slot occupato\", \"horário ocupado\", \"time slot unavailable\").\n\n2: Se il messaggio di errore indica che il paziente ha già un appuntamento (cerca parole chiave come \"già un appuntamento\", \"já possui um agendamento\", \"already has an appointment\").\n\n3: Per qualsiasi altro tipo di messaggio di errore 409",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1248,
+        -1488
+      ],
+      "id": "2ded3940-b17c-4ab5-aa43-433dfe72b254",
+      "name": "Analizza errore1",
+      "credentials": {
+        "openAiApi": {
+          "id": "B4yJlMETi6y35kM1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6df4870e-9dc4-4192-9367-6abbc4ba0393",
+              "name": "response",
+              "value": "L'ID prenotazione non e`stato trovato, la sua cancellazione non e´andata a buon fine.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1248,
+        464
+      ],
+      "id": "65f4a4b4-b6e1-473d-91cb-55e11cebfbf7",
+      "name": "mancata cancellazione appuntamento (errore nel recupero)1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22f9b479-a281-4103-a5af-85440f733ab7",
+              "name": "response",
+              "value": "\"Gentile Cliente, a causa di un'elevata richiesta di accesso ai nostri servizi, potrebbe riscontrare dei rallentamenti o l'impossibilità di completare l'operazione in questo momento.  La invitiamo a riprovare tra qualche m",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1552,
+        -1296
+      ],
+      "id": "2b17722f-8c9e-47b6-9ffd-a1f96b799e16",
+      "name": "dettaglio altro errore"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "criar agendamento": {
+      "main": [
+        [
+          {
+            "node": "input valido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "listar agendamento": {
+      "main": [
+        [
+          {
+            "node": "input valido2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "trasforma array orari in stringa": {
+      "main": [
+        [
+          {
+            "node": "elenca orari disponibili",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "input valido": {
+      "main": [
+        [
+          {
+            "node": "listar agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analizza errore1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "dettaglio altro errore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "salva variabili": {
+      "main": [
+        [
+          {
+            "node": "Valida Input e Configurazione",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica intento": {
+      "main": [
+        [
+          {
+            "node": "criar agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "listar agendamento2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "listar agendamento1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "listar agendamento3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ricevi JSON da agente": {
+      "main": [
+        [
+          {
+            "node": "salva variabili",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "listar agendamento1": {
+      "main": [
+        [
+          {
+            "node": "input valido1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "cancella appuntamento": {
+      "main": [
+        [
+          {
+            "node": "conferma cancellazione ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "input valido1": {
+      "main": [
+        [
+          {
+            "node": "cancella appuntamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "mancata cancellazione appuntamento (errore nel recupero)1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "dettaglio altro errore1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "input valido2": {
+      "main": [
+        [
+          {
+            "node": "elenca prenotazioni",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "dettaglio altro errore2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "disponibilita orari1": {
+      "main": [
+        [
+          {
+            "node": "trasforma array orari in stringa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "disponibilita orari": {
+      "main": [
+        [
+          {
+            "node": "trasforma array orari in stringa1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "listar agendamento2": {
+      "main": [
+        [
+          {
+            "node": "input valido3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "reagenda": {
+      "main": [
+        [
+          {
+            "node": "input valido4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "input valido3": {
+      "main": [
+        [
+          {
+            "node": "reagenda",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ID non recuperato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "input valido4": {
+      "main": [
+        [
+          {
+            "node": "Conferma riprogrammazione appuntamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analizza errore",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "dettaglio altro errore4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "trasforma array orari in stringa1": {
+      "main": [
+        [
+          {
+            "node": "elenca orari disponibili1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "listar agendamento3": {
+      "main": [
+        [
+          {
+            "node": "input valido5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "input valido5": {
+      "main": [
+        [
+          {
+            "node": "Trasforma array in stringa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "dettaglio altro errore5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trasforma array in stringa": {
+      "main": [
+        [
+          {
+            "node": "Elenca appuntamenti prenotati",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valida Input e Configurazione": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "verifica intento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Input invalidi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "disponibilita orari1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ha gia appuntamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "altro errore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tipo errore": {
+      "main": [
+        [
+          {
+            "node": "disponibilita orari",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ha gia appuntamento1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "altro errore1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizza errore": {
+      "main": [
+        [
+          {
+            "node": "tipo errore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizza errore1": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c72e55cd-af2f-4d71-a6da-68716c51e1a8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "540663e0a85878d3bf491b2efc5aa091adf37c0e3f38f1baf860d98ffe0c819b"
+  },
+  "id": "FNNQm1lX0UNMNWFy",
+  "tags": [
+    {
+      "updatedAt": "2025-07-25T18:53:05.781Z",
+      "createdAt": "2025-07-25T18:53:05.781Z",
+      "id": "aYnudHAsvqyruHRH",
+      "name": "clinica"
+    },
+    {
+      "updatedAt": "2025-07-29T17:56:24.598Z",
+      "createdAt": "2025-07-29T17:56:24.598Z",
+      "id": "gLHD3KuD39wgIvq8",
+      "name": "whatsapp"
+    }
+  ]
+}
